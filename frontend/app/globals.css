@@ -1,34 +1,136 @@
 @import "tailwindcss";
 
+/*
+ * Blueprint theme: warm paper, thin grid lines, monospace labels and an
+ * orange → pink accent.
+ */
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-paper: #ece9e2;
+  --color-paper-2: #f5f3ee;
+  --color-ink: #161616;
+  --color-line: rgb(22 22 22 / 0.12);
+  --color-accent: #f2703a;
+  --color-accent-2: #ff4f9a;
 }
 
 body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
+::selection {
+  background: #f2703a33;
+}
+
+/* ---- building blocks used across pages ---- */
+
 @utility card {
-  @apply rounded-2xl border border-stone-200 bg-white p-5 shadow-sm;
+  @apply relative border border-line bg-paper-2/80 p-5 backdrop-blur-sm;
 }
 
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50;
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] transition disabled:opacity-40;
 }
 
 @utility btn-primary {
-  @apply btn bg-stone-900 text-white hover:bg-stone-700;
+  @apply btn bg-ink text-paper-2 hover:bg-black;
 }
 
 @utility btn-secondary {
-  @apply btn border border-stone-300 bg-white text-stone-800 hover:bg-stone-100;
+  @apply btn border border-ink/30 bg-transparent text-ink hover:border-ink hover:bg-ink/5;
+}
+
+@utility btn-accent {
+  @apply btn border border-accent text-accent hover:bg-accent hover:text-white;
 }
 
 @utility input {
-  @apply w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-stone-500 focus:outline-none;
+  @apply w-full border border-line bg-paper-2 px-3 py-2 text-sm focus:border-ink focus:outline-none;
 }
 
 @utility label {
-  @apply mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500;
+  @apply mb-1 block font-mono text-[11px] uppercase tracking-[0.14em] text-ink/55;
+}
+
+@utility mono-label {
+  @apply font-mono text-[11px] uppercase tracking-[0.16em] text-ink/60;
+}
+
+/* Headline line framed by a thin accent box */
+@utility framed {
+  @apply inline-block border border-accent/70 px-2 leading-[1.05];
+}
+
+@utility accent-gradient {
+  background-image: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+}
+
+/* ---- motion ---- */
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(2deg);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes blinkEyes {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+.animate-eyes {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: blinkEyes 4s infinite;
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.7s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-blink,
+  .animate-eyes,
+  .animate-fade-up {
+    animation: none;
+  }
 }
