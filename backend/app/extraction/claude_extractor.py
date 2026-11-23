@@ -17,8 +17,7 @@ IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 PDF_TYPE = "application/pdf"
 
 
-class ExtractionError(RuntimeError):
-    pass
+from app.extraction.errors import ExtractionError  # noqa: E402  (re-exported)
 
 
 def _taxonomy_text() -> str:

@@ -23,7 +23,8 @@ from app.deadlines.engine import (
     PeriodUnit,
     compute_deadline,
 )
-from app.extraction.claude_extractor import ExtractionError, extract_letter
+from app.extraction.errors import ExtractionError
+from app.extraction.extractor import extract_letter
 from app.extraction.samples import SAMPLES, sample_extraction
 from app.extraction.schemas import LetterExtraction
 from app.knowledge.glossary import GLOSSARY
@@ -76,6 +77,8 @@ def meta() -> dict:
         "reply_templates": [t.to_dict() for t in REPLY_TEMPLATES.values()],
         "samples": [{"id": k, "label": v["label"], "preview": v["preview"]} for k, v in SAMPLES.items()],
         "case_statuses": CASE_STATUSES,
+        "ai_provider": settings.ai_provider,
+        "ai_model": settings.ollama_model if settings.ai_provider == "ollama" else settings.extraction_model,
     }
 
 
