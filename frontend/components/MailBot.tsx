@@ -1,5 +1,5 @@
 /**
- * Amtspost's mascot: a friendly letter drawn only with horizontal scanlines.
+ * Briefly's mascot: a friendly letter drawn only with horizontal scanlines.
  * Shading comes from line thickness (light / mid / dark patterns), and a
  * stream of lines trails off to the right like a signal.
  */

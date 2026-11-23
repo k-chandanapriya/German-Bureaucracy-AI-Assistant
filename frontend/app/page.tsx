@@ -58,12 +58,12 @@ export default function Home() {
         <div className="grid items-center gap-6 lg:grid-cols-2">
           <div className="animate-fade-up relative z-10 space-y-7 py-8">
             <h1 className="font-pixel text-[48px] font-bold uppercase leading-[0.92] sm:text-[68px] xl:text-[80px]">
-              Amtspost
+              Briefly
               <br />
               AI Agent
             </h1>
             <p className="max-w-sm text-[13px] leading-relaxed text-ink/80">
-              Amtspost reads your German letters, works out the real deadline, puts it in your calendar and drafts the
+              Briefly reads your German letters, works out the real deadline, puts it in your calendar and drafts the
               German reply.
             </p>
             <div className="flex flex-wrap items-center gap-6">

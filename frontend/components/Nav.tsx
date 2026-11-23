@@ -16,7 +16,7 @@ export default function Nav() {
     <header className="sticky top-0 z-40 bg-paper/90 backdrop-blur">
       <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="font-pixel text-[15px] font-bold tracking-wide">
-          Amtspost
+          Briefly
         </Link>
         <div className="flex items-center gap-4 sm:gap-7">
           {LINKS.map((l) => {

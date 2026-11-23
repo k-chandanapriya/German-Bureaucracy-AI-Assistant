@@ -1,6 +1,8 @@
-# Amtspost: German Bureaucracy AI Assistant
+# Briefly: German Bureaucracy AI Assistant
 
-Take a photo of an official German letter. Amtspost tells you **what it is, what you have to do and by when**. It puts the deadline in your calendar, drafts the German reply and keeps every letter of a case together.
+*Your German letters, briefly.*
+
+Take a photo of an official German letter. Briefly tells you **what it is, what you have to do and by when**. It puts the deadline in your calendar, drafts the German reply and keeps every letter of a case together.
 
 > Built for the ~14 million foreign nationals in Germany who get letters from the Finanzamt, the Ausländerbehörde and the Beitragsservice and have to work out "one month after notification" on their own.
 
@@ -97,7 +99,7 @@ docs/
 
 ## Important
 
-Amtspost gives **information, not legal or tax advice** (Rechtsdienstleistungsgesetz, Steuerberatungsgesetz). It explains, translates, computes deadlines and offers templates the user chooses. Always check dates and amounts against the original letter. See [docs/LEGAL.md](docs/LEGAL.md).
+Briefly gives **information, not legal or tax advice** (Rechtsdienstleistungsgesetz, Steuerberatungsgesetz). It explains, translates, computes deadlines and offers templates the user chooses. Always check dates and amounts against the original letter. See [docs/LEGAL.md](docs/LEGAL.md).
 
 ## Roadmap
 

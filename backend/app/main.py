@@ -1,4 +1,4 @@
-"""Amtspost API: understand German official letters, compute deadlines, draft replies."""
+"""Briefly API: understand German official letters, compute deadlines, draft replies."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Amtspost – German Bureaucracy AI Assistant", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Briefly – German Bureaucracy AI Assistant", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in settings.cors_origins.split(",")],
@@ -248,7 +248,7 @@ def letter_calendar(letter_id: int, session: Session = Depends(get_session)) -> 
     return Response(
         build_ics(events),
         media_type="text/calendar",
-        headers={"Content-Disposition": f'attachment; filename="amtspost-letter-{letter_id}.ics"'},
+        headers={"Content-Disposition": f'attachment; filename="briefly-letter-{letter_id}.ics"'},
     )
 
 

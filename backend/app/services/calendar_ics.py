@@ -27,13 +27,13 @@ def _fold(line: str) -> str:
     return "\r\n ".join(out)
 
 
-def build_ics(events: list[dict], calendar_name: str = "Amtspost deadlines") -> str:
+def build_ics(events: list[dict], calendar_name: str = "Briefly deadlines") -> str:
     """events: [{"title", "date": date, "description"}] → all-day events with reminders."""
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//Amtspost//German Bureaucracy AI Assistant//EN",
+        "PRODID:-//Briefly//German Bureaucracy AI Assistant//EN",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
         f"X-WR-CALNAME:{_escape(calendar_name)}",
@@ -42,7 +42,7 @@ def build_ics(events: list[dict], calendar_name: str = "Amtspost deadlines") -> 
         d: date = ev["date"]
         lines += [
             "BEGIN:VEVENT",
-            f"UID:{uuid4()}@amtspost.local",
+            f"UID:{uuid4()}@briefly.local",
             f"DTSTAMP:{stamp}",
             f"DTSTART;VALUE=DATE:{d.strftime('%Y%m%d')}",
             f"DTEND;VALUE=DATE:{(d + timedelta(days=1)).strftime('%Y%m%d')}",
