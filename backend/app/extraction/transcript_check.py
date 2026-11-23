@@ -11,13 +11,24 @@ from __future__ import annotations
 import re
 from datetime import date
 
-from app.extraction.schemas import Amount, AppealPeriod, LetterExtraction, Payment, ReferenceNumber
+from app.extraction.schemas import (
+    Amount,
+    AppealPeriod,
+    ExplicitDeadline,
+    LetterExtraction,
+    Payment,
+    ReferenceNumber,
+)
 from app.extraction.validators import iban_is_valid, parse_iso
 
-_DATE = r"(\d{1,2})\.\s?(\d{1,2})\.\s?(\d{4})"
+# 12.11.2026, 12. 11. 2026, 12-11-2026, 12/11/2026
+_DATE = r"(\d{1,2})[.\-/]\s?(\d{1,2})[.\-/]\s?(\d{4})"
 _LETTER_DATE_PATTERNS = [
-    rf"(?:Datum|Ausgabedatum|Bescheiddatum|Schreiben vom)\s*:?\s*{_DATE}",
+    # "Datum" as its own word (not Geburtsdatum); the date may be on the next line
+    rf"(?:\bDatum|Ausgabedatum|Bescheiddatum|Ausstellungsdatum|[Aa]usgestellt am|Schreiben vom)\s*:?\s*{_DATE}",
     rf"^[A-ZÄÖÜ][\wäöüß\- ]+,\s*(?:den\s+)?{_DATE}\s*$",  # "Berlin, 12.11.2026"
+    # Forms: a "Datum" label, then the place, then the date on its own line
+    rf"^\s*Datum\s*:?\s*\n(?:[^\n]*\n){{0,2}}?\s*{_DATE}\s*$",
 ]
 _IBAN = re.compile(r"\b(DE\d{2}(?:\s?\d{4}){4}\s?\d{2})\b")
 _BIC = re.compile(r"\bBIC\s*:?\s*([A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?)\b")
@@ -81,6 +92,35 @@ def find_appeal_period(text: str) -> AppealPeriod | None:
     return None
 
 
+# "gültig bis 31-12-2027", "vom 01.01.2026 bis 31.12.2027", "Pass … gültig bis …"
+_VALID_UNTIL = re.compile(rf"(?:gültig\s+bis|vom\s+{_DATE}\s+bis)\s+(?:zum\s+)?{_DATE}", re.I)
+_PAY_BY = re.compile(rf"(?:zahlbar|zahlen Sie|überweisen Sie)[^\n]*?bis\s+(?:zum\s+)?{_DATE}", re.I)
+
+
+def find_validity_deadlines(text: str) -> list[ExplicitDeadline]:
+    """End dates of permits, certificates and passports printed in the letter."""
+    out: list[ExplicitDeadline] = []
+    for line in text.splitlines():
+        for m in _VALID_UNTIL.finditer(line):
+            d, mth, y = m.groups()[-3:]
+            try:
+                iso = date(int(y), int(mth), int(d)).isoformat()
+            except ValueError:
+                continue
+            if re.search(r"\bPass\b|Reisepass|Passport", line[: m.start()], re.I):
+                desc = "Your passport expires: renew it in time (the immigration office needs a valid passport)"
+            else:
+                desc = "Valid until: apply for an extension before this date"
+            out.append(ExplicitDeadline(description=desc, date=iso))
+    for m in _PAY_BY.finditer(text):
+        d, mth, y = m.groups()[-3:]
+        try:
+            out.append(ExplicitDeadline(description="Pay by this date", date=date(int(y), int(mth), int(d)).isoformat()))
+        except ValueError:
+            pass
+    return out
+
+
 def apply_transcript(ex: LetterExtraction, text: str) -> list[str]:
     """Fill or correct fields from the transcript. Returns a list of what changed."""
     changes: list[str] = []
@@ -112,6 +152,13 @@ def apply_transcript(ex: LetterExtraction, text: str) -> list[str]:
             ex.payment.reference = r.group(1).strip()
         if not ex.payment.recipient and (r := _RECIPIENT.search(text)):
             ex.payment.recipient = r.group(1).strip()
+
+    known_dates = {d.date for d in ex.explicit_deadlines}
+    for dl in find_validity_deadlines(text):
+        if dl.date not in known_dates:
+            ex.explicit_deadlines.append(dl)
+            known_dates.add(dl.date)
+            changes.append(f"deadline: {dl.description.split(':')[0]}")
 
     if not any(a.direction == "you_pay" and a.due_date for a in ex.amounts):
         schedule = find_payment_schedule(text)

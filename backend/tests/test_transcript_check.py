@@ -70,3 +70,41 @@ def test_apply_corrects_garbled_iban_and_keeps_good_data():
     assert ex.payment.iban == "DE02120300000000202051"
     assert ex.letter_date == "2026-11-02"
     assert len([a for a in ex.amounts if a.due_date]) == 1  # existing schedule untouched
+
+
+FIKTION = """Ausländerbehörde
+Vorläufige Bescheinigung
+(gilt nur bis zur Aushändigung des elektronischen Aufenthaltstitels)
+Geburtsdatum: 01-02-1990
+Pass: Y1234567 gültig bis 15-08-2029
+... dem Antrag auf Erteilung einer Aufenthaltserlaubnis
+(Arbeitsplatzsuche nach Studium in Deutschland) vom 01-10-2026 bis 30-09-2028 entsprochen wurde.
+Ort, Datum
+Datum
+Musterstadt, LRA Musterkreis
+05.11.2026
+Unterschrift
+"""
+
+
+def test_dash_dates_and_date_on_next_line():
+    assert find_letter_date(FIKTION) == "2026-11-05"  # not the Geburtsdatum
+
+
+def test_validity_and_passport_deadlines():
+    from app.extraction.transcript_check import find_validity_deadlines
+
+    found = {(d.date, d.description.split(":")[0]) for d in find_validity_deadlines(FIKTION)}
+    assert found == {("2029-08-15", "Your passport expires"), ("2028-09-30", "Valid until")}
+    assert [d.date for d in find_validity_deadlines("Bitte zahlen Sie den Betrag bis zum 30.11.2026.")] == ["2026-11-30"]
+
+
+def test_fiktion_card_gets_deadlines():
+    from app.services.analysis import build_card
+
+    ex = sample_extraction("abh_termin")
+    ex.letter_type, ex.letter_date, ex.explicit_deadlines = "abh_fiktionsbescheinigung", None, []
+    apply_transcript(ex, FIKTION)
+    card = build_card(ex, "BW")
+    assert [d["due_date"] for d in card["deadlines"]] == ["2028-09-30", "2029-08-15"]
+    assert not any("No letter date" in w for w in card["warnings"])

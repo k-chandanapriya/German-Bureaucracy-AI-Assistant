@@ -102,3 +102,27 @@ def test_blank_page(monkeypatch):
     monkeypatch.setattr(ollama_extractor, "_post", lambda p: {"message": {"content": ""}})
     with pytest.raises(ExtractionError, match="No readable text"):
         ollama_extractor.extract_letter_ollama([(_png(10, 10), "image/png")])
+
+
+def test_digital_pdf_uses_text_layer_without_vision(monkeypatch):
+    from app.extraction.images import to_pages
+
+    long_body = "Bescheid über Vorauszahlungen. " * 10
+    pdf = render_letter_pdf(
+        sender_name="A", sender_address="Str. 1\n10115 Berlin", recipient_address="Finanzamt\n10179 Berlin",
+        city="Berlin", subject="Test", body=long_body,
+    )
+    [page] = to_pages([(pdf, "application/pdf")])
+    assert page.image is None and "Vorauszahlungen" in page.text
+
+    calls = []
+
+    def fake_post(payload):
+        calls.append(payload)
+        return {"message": {"content": json.dumps(SAMPLES["steuerbescheid"]["extraction"])}}
+
+    monkeypatch.setattr(ollama_extractor, "_post", fake_post)
+    stages = []
+    ollama_extractor.extract_letter_ollama([(pdf, "application/pdf")], stages.append)
+    assert len(calls) == 1 and "format" in calls[0]  # no vision call, straight to extraction
+    assert "Understanding the letter" in stages
