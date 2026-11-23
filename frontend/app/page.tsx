@@ -108,7 +108,9 @@ export default function Home() {
         </div>
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         <p className="text-xs text-stone-500">
-          Letters are processed by an AI model under an EU data-processing agreement and stored on this server only.
+          {meta?.ai_provider === "ollama"
+            ? `Letters are read by a local AI model (${meta.ai_model}) on this computer. Nothing is sent to the internet. Reading can take a minute.`
+            : "Letters are read by Claude under a data-processing agreement; only the extracted data is stored on this server."}{" "}
           You can delete a case at any time.
         </p>
       </section>

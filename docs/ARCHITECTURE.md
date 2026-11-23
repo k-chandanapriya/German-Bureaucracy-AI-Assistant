@@ -5,10 +5,12 @@
                                    │
        ┌───────────────────────────┼──────────────────────────────┐
        │                           │                              │
- Extraction (Claude vision)   Deadline engine (plain Python)   Outputs
+ Extraction (AI_PROVIDER)     Deadline engine (plain Python)   Outputs
  - image / PDF → JSON schema  - notification fiction           - .ics with VALARMs
- - Sonnet first, Opus if      - §§ 187–193 BGB, § 108 AO,       - GiroCode (EPC069-12)
-   confidence < 0.7             § 31 VwVfG, § 26 SGB X          - reply templates (Jinja)
+ - ollama: local model,       - §§ 187–193 BGB, § 108 AO,       - GiroCode (EPC069-12)
+   PDF → page images            § 31 VwVfG, § 26 SGB X          - reply templates (Jinja)
+ - anthropic: Sonnet first,
+   Opus if confidence < 0.7
  - validators: IBAN checksum, - Bundesland holidays             - DIN 5008 PDF (fpdf2)
    date sanity, uncertainty                                   
        │                           │                              │
@@ -34,6 +36,19 @@
 | Missing day (31 → February) → last day of month | § 188 (3) BGB | `relativedelta` clamp |
 | Last day on Sat/Sun/holiday → next working day | § 193 BGB, § 108 (3) AO, § 31 (3) VwVfG | `roll_forward()` |
 | Holidays depend on the state | — | `holidays.Germany(subdiv=…)` |
+
+## Choosing the model
+
+`app/extraction/extractor.py` dispatches on `AI_PROVIDER`. Both readers return the same `LetterExtraction`, so nothing downstream changes.
+
+| | `ollama` (local) | `anthropic` (Claude) |
+|---|---|---|
+| Cost | free | per token |
+| Privacy | letter never leaves the machine | processed by Anthropic under a DPA |
+| Input | images only: PDFs rendered with pypdfium2, photos scaled to 1600 px | images and PDFs directly |
+| Method | 3 passes: transcribe each page → extract JSON from the text → regex cross-check of date, IBAN, reference numbers, instalments and appeal period against the transcript | one structured-output call |
+| Accuracy | good on clean scans, weaker on bad photos; confidence capped at 0.9 | best; low-confidence letters re-read by Opus |
+| Speed | ~80–100 s for a one-page letter (`qwen2.5vl:7b`, Apple M4, 24 GB) | a few seconds |
 
 ## Data protection
 

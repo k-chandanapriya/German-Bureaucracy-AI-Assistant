@@ -73,6 +73,8 @@ export interface Meta {
   reply_templates: ReplyTemplate[];
   samples: { id: string; label: string; preview: string }[];
   case_statuses: string[];
+  ai_provider: "anthropic" | "ollama";
+  ai_model: string;
 }
 
 export interface Draft {
