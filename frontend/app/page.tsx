@@ -43,7 +43,13 @@ export default function Home() {
         setJob(state);
       }
       if (state.status === "error" || !state.result) throw new Error(state.error ?? "Reading failed");
+      // Finished: open the result and clear the form, so coming back here
+      // shows a fresh upload instead of a stale "Done…" box.
       router.push(`/letters/${state.result.letter_id}`);
+      setFiles([]);
+      setJob(null);
+      setBusy(null);
+      if (input.current) input.current.value = "";
     } catch (e) {
       setError((e as Error).message);
       setBusy(null);
@@ -74,13 +80,6 @@ export default function Home() {
                 Try the deadline calculator ›
               </a>
             </div>
-            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-ink/70">
-              <span>19 letter types</span>
-              <span aria-hidden>•</span>
-              <span>13 reply templates</span>
-              <span aria-hidden>•</span>
-              <span>16 Bundesländer</span>
-            </p>
           </div>
 
           <div className="relative">
@@ -160,7 +159,7 @@ export default function Home() {
           {error && <p className="border-2 border-red-600 bg-red-50 px-3 py-2 text-[13px] text-red-800">{error}</p>}
           <p className="text-[11px] leading-relaxed text-ink/55">
             {meta?.ai_provider === "ollama"
-              ? `Read by a local AI model (${meta.ai_model}) on this computer. Nothing is sent to the internet. Reading takes about a minute per page.`
+              ? `Read by ${meta.ai_model_name}, running locally on this computer. Nothing is sent to the internet. Reading takes about a minute per page.`
               : "Read by Claude under a data-processing agreement; only the extracted data is stored on this server."}{" "}
             You can delete a case at any time.
           </p>

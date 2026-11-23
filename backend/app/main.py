@@ -69,8 +69,17 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+# Official product names for the model ids we ship with, shown to users.
+MODEL_NAMES = {
+    "qwen2.5vl:7b": "Qwen2.5-VL 7B by Alibaba Cloud",
+    "claude-sonnet-5-5": "Claude Sonnet 5.5 by Anthropic",
+    "claude-opus-5-5": "Claude Opus 5.5 by Anthropic",
+}
+
+
 @app.get("/api/meta")
 def meta() -> dict:
+    model = settings.ollama_model if settings.ai_provider == "ollama" else settings.extraction_model
     return {
         "bundeslaender": BUNDESLAENDER,
         "default_bundesland": settings.default_bundesland,
@@ -80,7 +89,8 @@ def meta() -> dict:
         "samples": [{"id": k, "label": v["label"], "preview": v["preview"]} for k, v in SAMPLES.items()],
         "case_statuses": CASE_STATUSES,
         "ai_provider": settings.ai_provider,
-        "ai_model": settings.ollama_model if settings.ai_provider == "ollama" else settings.extraction_model,
+        "ai_model": model,
+        "ai_model_name": MODEL_NAMES.get(model, model),
     }
 
 
