@@ -28,8 +28,8 @@ export default function CasesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="mono-label mb-3">Amtspost / Cases</p>
-        <h1 className="text-4xl font-light tracking-tight sm:text-5xl">My cases</h1>
+        <h1 className="font-pixel text-4xl font-bold uppercase sm:text-5xl">My cases</h1>
+        <p className="mt-2 text-[13px] text-ink/65">Every letter, grouped by reference number, with its next deadline.</p>
       </div>
       {cases.length === 0 && (
         <p className="card text-ink/65">

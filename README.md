@@ -8,7 +8,7 @@ Take a photo of an official German letter. Amtspost tells you **what it is, what
 
 | Step | How |
 |---|---|
-| **Capture** | Upload photos (several pages) or a PDF, or try a built-in sample letter |
+| **Capture** | Upload photos (several pages) or a PDF |
 | **Understand** | A vision model reads the letter into a strict JSON schema: sender, letter type, reference numbers, amounts, IBAN, printed dates, appeal period. Choose a **local model via Ollama** (free, nothing leaves your computer) or **Claude** (best accuracy) |
 | **Explain** | Plain English at three depths: *In short → Details → Line by line*, plus "if you do nothing" and an Amtsdeutsch glossary |
 | **Deadlines** | A **deterministic engine** (plain Python, not the LLM) applies the 4-day notification rule, §§ 187–193 BGB / § 108 AO / § 31 VwVfG, month ends, weekends and **state-specific holidays**, and shows each step |
@@ -67,7 +67,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. Without any AI model you can still try the three sample letters, the deadline calculator, reply drafting and cases.
+Open http://localhost:3000. Without any AI model you can still use the deadline calculator and the glossary; the fictional sample letters are available through the API (`POST /api/letters/sample/{id}`, see http://localhost:8010/docs).
 
 **Tests**
 

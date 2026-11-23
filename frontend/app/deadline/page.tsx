@@ -53,10 +53,7 @@ export default function DeadlinePage() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="mono-label mb-3">Amtspost / Tools</p>
-        <h1 className="mb-2 text-4xl font-light tracking-tight sm:text-5xl">
-          <span className="framed">Deadline</span> calculator
-        </h1>
+        <h1 className="mb-3 font-pixel text-4xl font-bold uppercase sm:text-5xl">Deadline calculator</h1>
         <p className="text-ink/65">
           &quot;One month after notification&quot; — but when exactly? Enter the date on the letter and we apply the German rules step by step.
         </p>

@@ -19,17 +19,15 @@ export default function GlossaryPage() {
   return (
     <div className="space-y-5">
       <div>
-        <p className="mono-label mb-3">Amtspost / Glossary</p>
-        <h1 className="text-4xl font-light tracking-tight sm:text-5xl">
-          <span className="framed">Amtsdeutsch</span> glossary
-        </h1>
+        <h1 className="font-pixel text-4xl font-bold uppercase sm:text-5xl">Amtsdeutsch glossary</h1>
+        <p className="mt-2 text-[13px] text-ink/65">The words official letters use, in plain English.</p>
       </div>
       <input className="input" placeholder="Search, e.g. Bescheid" value={q} onChange={(e) => setQ(e.target.value)} />
       {error && <p className="text-red-700">{error}</p>}
       <dl className="card divide-y divide-line">
         {entries.map(([term, def]) => (
           <div key={term} className="py-3">
-            <dt className="font-mono text-[13px] uppercase tracking-[0.08em] text-accent">{term}</dt>
+            <dt className="font-pixel text-[15px] font-bold">{term}</dt>
             <dd className="text-ink/65">{def}</dd>
           </div>
         ))}

@@ -66,7 +66,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
           <span className="text-ink/30">/</span>
           <span className="mono-label">Dated {deDate(card.letter_date)}</span>
         </div>
-        <h1 className="text-4xl font-light leading-tight tracking-tight sm:text-5xl">{card.title}</h1>
+        <h1 className="text-3xl font-medium leading-tight sm:text-4xl">{card.title}</h1>
         <p className="text-sm text-ink/55">
           {card.letter_type.name_de} — {card.letter_type.name_en}
         </p>

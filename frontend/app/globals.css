@@ -1,38 +1,42 @@
 @import "tailwindcss";
 
 /*
- * Blueprint theme: warm paper, thin grid lines, monospace labels and an
- * orange → pink accent.
+ * Pixel / scanline theme: light grey paper, black ink, monospace text and a
+ * pixel display font for headlines. Monochrome on purpose; colour is kept
+ * for status (urgent, overdue) only.
  */
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-geist-mono);
   --font-mono: var(--font-geist-mono);
-  --color-paper: #ece9e2;
-  --color-paper-2: #f5f3ee;
-  --color-ink: #161616;
-  --color-line: rgb(22 22 22 / 0.12);
-  --color-accent: #f2703a;
-  --color-accent-2: #ff4f9a;
+  --font-pixel: var(--font-silkscreen);
+  --color-paper: #efefed;
+  --color-paper-2: #f8f8f7;
+  --color-ink: #111111;
+  --color-line: rgb(17 17 17 / 0.14);
+  --color-accent: #111111;
+  --color-accent-2: #555555;
 }
 
 body {
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
   background: var(--color-paper);
   color: var(--color-ink);
+  font-size: 14px;
 }
 
 ::selection {
-  background: #f2703a33;
+  background: #111;
+  color: #f8f8f7;
 }
 
 /* ---- building blocks used across pages ---- */
 
 @utility card {
-  @apply relative border border-line bg-paper-2/80 p-5 backdrop-blur-sm;
+  @apply relative border border-line bg-paper-2 p-5;
 }
 
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] transition disabled:opacity-40;
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 font-mono text-[12px] transition disabled:opacity-40;
 }
 
 @utility btn-primary {
@@ -40,32 +44,42 @@ body {
 }
 
 @utility btn-secondary {
-  @apply btn border border-ink/30 bg-transparent text-ink hover:border-ink hover:bg-ink/5;
+  @apply btn border border-ink/40 bg-transparent text-ink hover:border-ink hover:bg-ink/5;
 }
 
 @utility btn-accent {
-  @apply btn border border-accent text-accent hover:bg-accent hover:text-white;
+  @apply btn bg-ink text-paper-2 hover:bg-black;
+}
+
+@utility btn-link {
+  @apply inline-flex items-center gap-1 font-mono text-[12px] text-ink underline-offset-4 hover:underline;
 }
 
 @utility input {
-  @apply w-full border border-line bg-paper-2 px-3 py-2 text-sm focus:border-ink focus:outline-none;
+  @apply w-full border border-ink/25 bg-paper-2 px-3 py-2 font-mono text-[13px] focus:border-ink focus:outline-none;
 }
 
 @utility label {
-  @apply mb-1 block font-mono text-[11px] uppercase tracking-[0.14em] text-ink/55;
+  @apply mb-1 block font-mono text-[11px] uppercase tracking-[0.12em] text-ink/55;
 }
 
 @utility mono-label {
-  @apply font-mono text-[11px] uppercase tracking-[0.16em] text-ink/60;
+  @apply font-mono text-[11px] uppercase tracking-[0.12em] text-ink/60;
 }
 
-/* Headline line framed by a thin accent box */
+/* Kept for pages that frame a word in a headline */
 @utility framed {
-  @apply inline-block border border-accent/70 px-2 leading-[1.05];
+  @apply inline-block border-2 border-ink px-2 leading-[1.05];
+}
+
+/* Pixel-style box: hard border with a stepped offset shadow */
+@utility pixel-box {
+  @apply border-2 border-ink bg-paper-2;
+  box-shadow: 4px 4px 0 0 var(--color-ink);
 }
 
 @utility accent-gradient {
-  background-image: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+  background: var(--color-ink);
 }
 
 /* ---- motion ---- */
@@ -73,10 +87,10 @@ body {
 @keyframes float {
   0%,
   100% {
-    transform: translateY(0) rotate(-2deg);
+    transform: translateY(0);
   }
   50% {
-    transform: translateY(-14px) rotate(2deg);
+    transform: translateY(-10px);
   }
 }
 
@@ -97,10 +111,20 @@ body {
   }
 }
 
+@keyframes stream {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.82);
+  }
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -109,7 +133,7 @@ body {
 }
 
 .animate-float {
-  animation: float 6s ease-in-out infinite;
+  animation: float 5s ease-in-out infinite;
 }
 
 .animate-blink {
@@ -122,14 +146,21 @@ body {
   animation: blinkEyes 4s infinite;
 }
 
+.animate-stream {
+  transform-origin: left center;
+  transform-box: fill-box;
+  animation: stream 3s ease-in-out infinite;
+}
+
 .animate-fade-up {
-  animation: fadeUp 0.7s ease-out both;
+  animation: fadeUp 0.6s ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-float,
   .animate-blink,
   .animate-eyes,
+  .animate-stream,
   .animate-fade-up {
     animation: none;
   }

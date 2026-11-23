@@ -33,7 +33,7 @@ export default function CaseView() {
         ← All cases
       </Link>
       <section className="card space-y-2">
-        <h1 className="text-4xl font-light tracking-tight">{c.title}</h1>
+        <h1 className="text-3xl font-medium leading-tight sm:text-4xl">{c.title}</h1>
         <p className="text-ink/55">
           {c.sender_name}
           {c.reference && <> · <span className="font-mono">{c.reference}</span></>}
