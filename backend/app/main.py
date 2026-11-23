@@ -9,12 +9,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.config import settings
-from app.db import CASE_STATUSES, Case, CaseEvent, Letter, get_session, init_db
+from app import jobs
+from app.db import CASE_STATUSES, Case, CaseEvent, Letter, engine, get_session, init_db
 from app.deadlines.engine import (
     BUNDESLAENDER,
     DeadlineInput,
@@ -127,13 +129,7 @@ def _store(session: Session, ex: LetterExtraction, card: dict, bundesland: str, 
     return {"letter_id": letter.id, "case_id": case.id, "linked_to_existing_case": not is_new_case, **card}
 
 
-@app.post("/api/letters/analyze")
-async def analyze_letter(
-    files: list[UploadFile] = File(...),
-    bundesland: str = Form(settings.default_bundesland),
-    session: Session = Depends(get_session),
-) -> dict:
-    land = _check_land(bundesland)
+async def _read_uploads(files: list[UploadFile]) -> list[tuple[bytes, str]]:
     payload: list[tuple[bytes, str]] = []
     total = 0
     for f in files:
@@ -142,13 +138,50 @@ async def analyze_letter(
         payload.append((data, f.content_type or "application/octet-stream"))
     if total > settings.max_upload_mb * 1024 * 1024:
         raise HTTPException(413, f"Upload is larger than {settings.max_upload_mb} MB")
+    return payload
 
+
+def _read_and_store(payload: list[tuple[bytes, str]], land: str, progress=lambda _: None) -> dict:
+    ex, model = extract_letter(payload, progress)
+    progress("Calculating deadlines")
+    card = build_card(ex, land)
+    with Session(engine) as session:
+        return _store(session, ex, card, land, model)
+
+
+@app.post("/api/letters/analyze")
+async def analyze_letter(
+    files: list[UploadFile] = File(...),
+    bundesland: str = Form(settings.default_bundesland),
+) -> dict:
+    """Read a letter and wait for the result (simple API clients)."""
+    land = _check_land(bundesland)
+    payload = await _read_uploads(files)
     try:
-        ex, model = extract_letter(payload)
+        # Model calls block, so run them off the event loop.
+        return await run_in_threadpool(_read_and_store, payload, land)
     except ExtractionError as e:
         raise HTTPException(502, str(e)) from e
-    card = build_card(ex, land)
-    return _store(session, ex, card, land, model)
+
+
+@app.post("/api/letters/analyze/jobs", status_code=202)
+async def start_reading_job(
+    files: list[UploadFile] = File(...),
+    bundesland: str = Form(settings.default_bundesland),
+) -> dict:
+    """Start reading a letter in the background; poll GET /api/jobs/{id} for progress."""
+    land = _check_land(bundesland)
+    payload = await _read_uploads(files)
+    job = jobs.submit(lambda progress: _read_and_store(payload, land, progress), ExtractionError)
+    return job.to_dict()
+
+
+@app.get("/api/jobs/{job_id}")
+def get_job(job_id: str) -> dict:
+    job = jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found (the backend may have restarted). Please upload the letter again.")
+    return job.to_dict()
 
 
 @app.post("/api/letters/sample/{sample_id}")

@@ -4,7 +4,8 @@ Nothing leaves the computer: the photo goes to the Ollama server on
 localhost. Small local models are excellent at transcribing a page but weak
 at filling a large schema from pixels, so reading happens in three passes:
 
-1. transcribe each page to plain text (vision),
+1. transcribe each page to plain text (vision), unless the PDF already
+   contains its text,
 2. extract the JSON schema from that text (Ollama constrains the output to
    the same schema the Claude extractor uses),
 3. cross-check dates, IBAN, reference numbers and the appeal period against
@@ -16,6 +17,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+from collections.abc import Callable
 
 import httpx
 from pydantic import ValidationError
@@ -23,11 +25,17 @@ from pydantic import ValidationError
 from app.config import settings
 from app.extraction.claude_extractor import SYSTEM_PROMPT
 from app.extraction.errors import ExtractionError
-from app.extraction.images import to_page_images
+from app.extraction.images import Page, to_pages
 from app.extraction.schemas import LetterExtraction
 from app.extraction.transcript_check import apply_transcript
 
 log = logging.getLogger(__name__)
+
+Progress = Callable[[str], None]
+
+
+def _no_progress(_: str) -> None:
+    pass
 
 SCHEMA = LetterExtraction.model_json_schema()
 
@@ -51,6 +59,9 @@ def _post(payload: dict) -> dict:
         raise ExtractionError(
             "The local model took too long. Try fewer pages, or raise OLLAMA_TIMEOUT_S in backend/.env."
         ) from e
+    except httpx.HTTPError as e:
+        # e.g. Ollama was restarted while it was reading
+        raise ExtractionError("The connection to Ollama was interrupted. Please try again.") from e
     if r.status_code == 404:
         raise ExtractionError(
             f"The model '{settings.ollama_model}' isn't downloaded yet. Run: ollama pull {settings.ollama_model}"
@@ -70,21 +81,32 @@ TRANSCRIBE_PROMPT = (
 )
 
 
-def transcribe(pages: list[bytes]) -> str:
-    """Pass 1: the vision model reads each page as plain text (very reliable)."""
+def transcribe(pages: list[Page], progress: Progress = _no_progress) -> str:
+    """Pass 1: text for every page. Digital PDF pages already have it; images go to the vision model."""
+    to_read = sum(1 for p in pages if p.text is None)
+    done = 0
     texts = []
     for i, page in enumerate(pages, 1):
-        data = _post(
-            {
-                "model": settings.ollama_model,
-                "stream": False,
-                "options": {"temperature": 0, "num_ctx": settings.ollama_num_ctx},
-                "messages": [
-                    {"role": "user", "content": TRANSCRIBE_PROMPT, "images": [base64.b64encode(page).decode("ascii")]}
-                ],
-            }
-        )
-        text = (data.get("message") or {}).get("content", "").strip()
+        if page.text is not None:
+            text = page.text
+        else:
+            done += 1
+            progress(f"Reading page {i} of {len(pages)}" if to_read > 1 else "Reading the page")
+            data = _post(
+                {
+                    "model": settings.ollama_model,
+                    "stream": False,
+                    "options": {"temperature": 0, "num_ctx": settings.ollama_num_ctx},
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": TRANSCRIBE_PROMPT,
+                            "images": [base64.b64encode(page.image or b"").decode("ascii")],
+                        }
+                    ],
+                }
+            )
+            text = (data.get("message") or {}).get("content", "").strip()
         texts.append(f"--- Page {i} ---\n{text}" if len(pages) > 1 else text)
     transcript = "\n\n".join(texts)
     if len(transcript) < 40:
@@ -92,10 +114,13 @@ def transcribe(pages: list[bytes]) -> str:
     return transcript
 
 
-def extract_letter_ollama(files: list[tuple[bytes, str]]) -> tuple[LetterExtraction, str]:
-    pages = to_page_images(files)
-    transcript = transcribe(pages)
-
+def extract_letter_ollama(
+    files: list[tuple[bytes, str]], progress: Progress = _no_progress
+) -> tuple[LetterExtraction, str]:
+    progress("Preparing pages")
+    pages = to_pages(files)
+    transcript = transcribe(pages, progress)
+    progress("Understanding the letter")
     # Pass 2: structured extraction from the text, constrained to the JSON schema.
     data = _post(
         {

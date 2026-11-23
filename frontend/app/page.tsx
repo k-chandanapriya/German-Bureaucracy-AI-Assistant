@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import BundeslandSelect, { useBundesland } from "@/components/BundeslandSelect";
-import { api, type Meta } from "@/lib/api";
+import { api, type Meta, type ReadingJob } from "@/lib/api";
 
 const ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
 
@@ -15,6 +15,7 @@ export default function Home() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [job, setJob] = useState<ReadingJob | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -37,6 +38,26 @@ export default function Home() {
     } catch (e) {
       setError((e as Error).message);
       setBusy(null);
+    }
+  };
+
+  const readLetter = async () => {
+    setBusy("upload");
+    setError(null);
+    try {
+      let state = await api.startReading(files, land);
+      setJob(state);
+      while (state.status === "queued" || state.status === "running") {
+        await new Promise((r) => setTimeout(r, 1500));
+        state = await api.job(state.id);
+        setJob(state);
+      }
+      if (state.status === "error" || !state.result) throw new Error(state.error ?? "Reading failed");
+      router.push(`/letters/${state.result.letter_id}`);
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(null);
+      setJob(null);
     }
   };
 
@@ -101,11 +122,18 @@ export default function Home() {
           <button
             className="btn-primary h-10"
             disabled={!files.length || !!busy}
-            onClick={() => run("upload", () => api.analyze(files, land))}
+            onClick={readLetter}
           >
             {busy === "upload" ? "Reading your letter…" : "Explain my letter"}
           </button>
         </div>
+        {job && busy === "upload" && (
+          <div className="flex items-center gap-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" aria-live="polite">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-amber-300 border-t-amber-700" />
+            <span className="flex-1">{job.stage}…</span>
+            <span className="tabular-nums text-amber-700">{job.elapsed_s}s</span>
+          </div>
+        )}
         {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
         <p className="text-xs text-stone-500">
           {meta?.ai_provider === "ollama"

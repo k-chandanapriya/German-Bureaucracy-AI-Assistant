@@ -112,3 +112,42 @@ def test_cases_status_and_delete():
         assert any(x["id"] == card["case_id"] for x in c.get("/api/cases").json())
         assert c.delete(f"/api/cases/{card['case_id']}").status_code == 200
         assert c.get(f"/api/cases/{card['case_id']}").status_code == 404
+
+
+def test_reading_job_reports_progress_and_result(monkeypatch):
+    import time
+
+    from app import main
+    from app.extraction.errors import ExtractionError
+    from app.extraction.samples import sample_extraction
+
+    def fake_extract(payload, progress):
+        progress("Reading page 1 of 2")
+        return sample_extraction("abh_termin"), "fake"
+
+    monkeypatch.setattr(main, "extract_letter", fake_extract)
+    with client() as c:
+        job = c.post("/api/letters/analyze/jobs", files={"files": ("a.png", b"x", "image/png")}, data={"bundesland": "BE"})
+        assert job.status_code == 202
+        jid = job.json()["id"]
+        for _ in range(50):
+            state = c.get(f"/api/jobs/{jid}").json()
+            if state["status"] in ("done", "error"):
+                break
+            time.sleep(0.05)
+        assert state["status"] == "done", state
+        assert state["result"]["letter_type"]["id"] == "abh_termin"
+        assert c.get(f"/api/letters/{state['result']['letter_id']}").status_code == 200
+
+        def failing(payload, progress):
+            raise ExtractionError("Can't reach Ollama")
+
+        monkeypatch.setattr(main, "extract_letter", failing)
+        jid = c.post("/api/letters/analyze/jobs", files={"files": ("a.png", b"x", "image/png")}).json()["id"]
+        for _ in range(50):
+            state = c.get(f"/api/jobs/{jid}").json()
+            if state["status"] in ("done", "error"):
+                break
+            time.sleep(0.05)
+        assert state == {**state, "status": "error", "error": "Can't reach Ollama"}
+        assert c.get("/api/jobs/unknown").status_code == 404

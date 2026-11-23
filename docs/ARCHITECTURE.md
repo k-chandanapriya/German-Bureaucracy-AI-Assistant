@@ -46,7 +46,7 @@
 | Cost | free | per token |
 | Privacy | letter never leaves the machine | processed by Anthropic under a DPA |
 | Input | images only: PDFs rendered with pypdfium2, photos scaled to 1600 px | images and PDFs directly |
-| Method | 3 passes: transcribe each page → extract JSON from the text → regex cross-check of date, IBAN, reference numbers, instalments and appeal period against the transcript | one structured-output call |
+| Method | 3 passes: transcribe each page (skipped for digital PDFs, which use their text layer) → extract JSON from the text → regex cross-check of letter date, IBAN, reference numbers, instalments, validity/passport expiry and appeal period against the transcript | one structured-output call |
 | Accuracy | good on clean scans, weaker on bad photos; confidence capped at 0.9 | best; low-confidence letters re-read by Opus |
 | Speed | ~80–100 s for a one-page letter (`qwen2.5vl:7b`, Apple M4, 24 GB) | a few seconds |
 
@@ -61,7 +61,9 @@
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/meta` | Bundesländer, letter types, templates, samples |
-| POST | `/api/letters/analyze` | multipart `files[]` + `bundesland` → result card |
+| POST | `/api/letters/analyze/jobs` | multipart `files[]` + `bundesland` → background job (used by the web app) |
+| GET | `/api/jobs/{id}` | job status, current stage, elapsed seconds, result card |
+| POST | `/api/letters/analyze` | same, but waits for the result card |
 | POST | `/api/letters/sample/{id}` | sample letter without an API key |
 | GET | `/api/letters/{id}` | stored result card |
 | POST | `/api/letters/{id}/recompute` | user-corrected letter/receipt date |

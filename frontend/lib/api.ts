@@ -100,6 +100,15 @@ export interface CaseSummary {
   timeline?: { kind: string; text: string; at: string }[];
 }
 
+export interface ReadingJob {
+  id: string;
+  status: "queued" | "running" | "done" | "error";
+  stage: string;
+  elapsed_s: number;
+  result: LetterCard | null;
+  error: string | null;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
@@ -133,6 +142,13 @@ export const api = {
     fd.append("bundesland", bundesland);
     return request<LetterCard>("/api/letters/analyze", { method: "POST", body: fd });
   },
+  startReading: (files: File[], bundesland: string) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append("files", f));
+    fd.append("bundesland", bundesland);
+    return request<ReadingJob>("/api/letters/analyze/jobs", { method: "POST", body: fd });
+  },
+  job: (id: string) => request<ReadingJob>(`/api/jobs/${id}`),
   sample: (id: string, bundesland: string) =>
     request<LetterCard>(`/api/letters/sample/${id}?bundesland=${bundesland}`, { method: "POST" }),
   letter: (id: number | string) => request<LetterCard>(`/api/letters/${id}`),
