@@ -3,20 +3,25 @@
 import Link from "next/link";
 import { useState } from "react";
 import CopyButton from "@/components/CopyButton";
+import { CornerTicks } from "@/components/Frame";
 import DeadlineList from "@/components/DeadlineList";
 import ReplyDrafter from "@/components/ReplyDrafter";
 import { api, deDate, euro, type LetterCard, type Meta } from "@/lib/api";
 
 const SEVERITY = {
-  info: { icon: "🟢", text: "For your information", cls: "bg-emerald-50 text-emerald-800 border-emerald-200" },
-  action: { icon: "🟡", text: "Action may be needed", cls: "bg-amber-50 text-amber-800 border-amber-200" },
-  urgent: { icon: "🔴", text: "Act now", cls: "bg-red-50 text-red-800 border-red-200" },
+  info: { dot: "bg-emerald-500", text: "For your information", cls: "border-emerald-600/60 text-emerald-800" },
+  action: { dot: "bg-accent", text: "Action may be needed", cls: "border-accent text-accent" },
+  urgent: { dot: "bg-red-500", text: "Act now", cls: "border-red-500 text-red-700" },
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="card space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">{title}</h2>
+    <section className="card space-y-4">
+      <CornerTicks className="border-ink/30" />
+      <h2 className="mono-label flex items-center gap-3">
+        <span className="h-px w-5 bg-accent" />
+        {title}
+      </h2>
       {children}
     </section>
   );
@@ -50,22 +55,24 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
   return (
     <div className="space-y-5">
       {/* Header */}
-      <section className="card space-y-3">
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className={`rounded-full border px-2.5 py-0.5 font-medium ${sev.cls}`}>
-            {sev.icon} {sev.text}
+      <section className="card space-y-4 p-6 sm:p-8">
+        <CornerTicks />
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <span className={`flex items-center gap-2 border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] ${sev.cls}`}>
+            <span className={`h-1.5 w-1.5 ${sev.dot}`} />
+            {sev.text}
           </span>
-          <span className="text-stone-500">{card.sender.name}</span>
-          <span className="text-stone-400">·</span>
-          <span className="text-stone-500">dated {deDate(card.letter_date)}</span>
+          <span className="mono-label">{card.sender.name}</span>
+          <span className="text-ink/30">/</span>
+          <span className="mono-label">Dated {deDate(card.letter_date)}</span>
         </div>
-        <h1 className="text-2xl font-bold">{card.title}</h1>
-        <p className="text-sm text-stone-500">
+        <h1 className="text-4xl font-light leading-tight tracking-tight sm:text-5xl">{card.title}</h1>
+        <p className="text-sm text-ink/55">
           {card.letter_type.name_de} — {card.letter_type.name_en}
         </p>
         {card.linked_to_existing_case && (
-          <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">
-            🔗 This letter has the same reference number as an earlier one, so we added it to that{" "}
+          <p className="border border-line bg-paper px-3 py-2 text-sm text-ink/75">
+            This letter has the same reference number as an earlier one, so we added it to that{" "}
             <Link href={`/cases/${card.case_id}`} className="underline">
               case
             </Link>
@@ -73,7 +80,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
           </p>
         )}
 
-        <div className="flex gap-1 rounded-lg bg-stone-100 p-1 text-sm">
+        <div className="flex gap-1 bg-ink/5 p-1 text-sm">
           {(
             [
               ["tldr", "In short"],
@@ -84,7 +91,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
             <button
               key={k}
               onClick={() => setDepth(k)}
-              className={`flex-1 rounded-md px-3 py-1.5 ${depth === k ? "bg-white font-medium shadow-sm" : "text-stone-600"}`}
+              className={`flex-1 px-3 py-1.5 ${depth === k ? "bg-paper-2 font-medium shadow-sm" : "text-ink/65"}`}
             >
               {label}
             </button>
@@ -92,17 +99,17 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
         </div>
         {depth === "tldr" && <p className="text-lg leading-relaxed">{card.tldr}</p>}
         {depth === "details" && (
-          <div className="space-y-2 text-stone-700">
+          <div className="space-y-2 text-ink/75">
             <p>{card.details}</p>
-            <p className="text-sm text-stone-500">{card.what_it_is}</p>
+            <p className="text-sm text-ink/55">{card.what_it_is}</p>
           </div>
         )}
         {depth === "lines" && (
           <table className="w-full text-sm">
             <tbody>
               {card.line_by_line.map((l, i) => (
-                <tr key={i} className="border-b border-stone-100 align-top">
-                  <td className="w-1/2 py-2 pr-3 font-mono text-xs text-stone-600">{l.de}</td>
+                <tr key={i} className="border-b border-line align-top">
+                  <td className="w-1/2 py-2 pr-3 font-mono text-xs text-ink/65">{l.de}</td>
                   <td className="py-2">{l.en}</td>
                 </tr>
               ))}
@@ -112,9 +119,9 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
       </section>
 
       {card.warnings.length > 0 && (
-        <section className="card space-y-3 border-amber-300 bg-amber-50">
-          <h2 className="font-semibold text-amber-900">⚠ Please confirm these with the original letter</h2>
-          <ul className="list-disc space-y-1 pl-5 text-sm text-amber-900">
+        <section className="card space-y-3 border-accent/60 bg-accent/5">
+          <h2 className="font-medium text-ink/80">⚠ Please confirm these with the original letter</h2>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-ink/80">
             {card.warnings.map((w, i) => (
               <li key={i}>{w}</li>
             ))}
@@ -126,7 +133,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
         <Section title="Check this">
           <ul className="space-y-1">
             {card.check_this.map((c, i) => (
-              <li key={i}>⚠️ {c}</li>
+              <li key={i} className="flex gap-3"><span className="font-mono text-accent">!</span>{c}</li>
             ))}
           </ul>
         </Section>
@@ -134,14 +141,14 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
 
       <Section title="Deadlines">
         <DeadlineList deadlines={card.deadlines} />
-        <div className="flex flex-wrap items-end gap-3 border-t border-stone-100 pt-3">
+        <div className="flex flex-wrap items-end gap-3 border-t border-line pt-3">
           {card.deadlines.length > 0 && (
             <a className="btn-primary" href={api.icsUrl(card.letter_id)}>
-              📅 Add to calendar (.ics)
+              Add to calendar (.ics) ↗
             </a>
           )}
           <details className="text-sm">
-            <summary className="cursor-pointer text-stone-600">Wrong date? Correct it</summary>
+            <summary className="cursor-pointer text-ink/65">Wrong date? Correct it</summary>
             <div className="mt-2 flex flex-wrap items-end gap-2">
               <label>
                 <span className="label">Letter date</span>
@@ -157,7 +164,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
             </div>
           </details>
         </div>
-        <p className="text-xs text-stone-500">Reminders are set 7, 3 and 1 day before. Holidays: {meta?.bundeslaender[card.bundesland] ?? card.bundesland}.</p>
+        <p className="text-xs text-ink/55">Reminders are set 7, 3 and 1 day before. Holidays: {meta?.bundeslaender[card.bundesland] ?? card.bundesland}.</p>
       </Section>
 
       {(card.amounts.length > 0 || card.payment) && (
@@ -167,7 +174,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
               <li key={i} className="flex justify-between gap-4">
                 <span>{a.label}</span>
                 <span
-                  className={`font-semibold ${a.direction === "you_receive" ? "text-emerald-700" : a.direction === "you_pay" ? "text-red-700" : "text-stone-500"}`}
+                  className={`font-medium ${a.direction === "you_receive" ? "text-emerald-700" : a.direction === "you_pay" ? "text-red-700" : "text-ink/55"}`}
                 >
                   {a.direction === "you_receive" ? "+" : a.direction === "you_pay" ? "−" : ""}
                   {euro(a.amount_eur)}
@@ -176,7 +183,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
             ))}
           </ul>
           {card.payment && (
-            <div className="grid gap-4 rounded-xl bg-stone-50 p-4 sm:grid-cols-[1fr_auto]">
+            <div className="grid gap-4 bg-paper p-4 sm:grid-cols-[1fr_auto]">
               <dl className="space-y-2 text-sm">
                 {[
                   ["Recipient", card.payment.recipient],
@@ -200,7 +207,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
                 <div className="text-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={api.girocodeUrl(card.letter_id)} alt="GiroCode for your banking app" className="h-40 w-40" />
-                  <p className="text-xs text-stone-500">Scan with your banking app</p>
+                  <p className="text-xs text-ink/55">Scan with your banking app</p>
                 </div>
               )}
             </div>
@@ -220,13 +227,13 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
           <div className="flex flex-wrap gap-2">
             {card.reply_templates.map((t) => (
               <button key={t.id} className="btn-secondary" onClick={() => setTemplateId(t.id)}>
-                ✍️ {t.title}
+                {t.title} ↗
               </button>
             ))}
           </div>
         )}
         {card.if_ignored && (
-          <p className="rounded-lg bg-stone-100 px-3 py-2 text-sm">
+          <p className="bg-ink/5 px-3 py-2 text-sm">
             <span className="font-medium">If you do nothing: </span>
             {card.if_ignored}
           </p>
@@ -240,7 +247,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
               <li key={i}>
                 <label className="flex items-center gap-2">
                   <input type="checkbox" checked={!!checked[i]} onChange={(e) => setChecked({ ...checked, [i]: e.target.checked })} />
-                  <span className={checked[i] ? "text-stone-400 line-through" : ""}>{c}</span>
+                  <span className={checked[i] ? "text-ink/40 line-through" : ""}>{c}</span>
                 </label>
               </li>
             ))}
@@ -268,8 +275,8 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
           <dl className="space-y-2 text-sm">
             {Object.entries(card.glossary).map(([term, def]) => (
               <div key={term}>
-                <dt className="font-semibold">{term}</dt>
-                <dd className="text-stone-600">{def}</dd>
+                <dt className="font-medium">{term}</dt>
+                <dd className="text-ink/65">{def}</dd>
               </div>
             ))}
           </dl>
@@ -280,9 +287,9 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
         <Link href={`/cases/${card.case_id}`} className="btn-secondary">
           Open case →
         </Link>
-        <span className="text-stone-500">AI confidence: {Math.round(card.confidence * 100)}%</span>
+        <span className="text-ink/55">AI confidence: {Math.round(card.confidence * 100)}%</span>
       </div>
-      <p className="text-xs text-stone-500">{card.disclaimer}</p>
+      <p className="text-xs text-ink/55">{card.disclaimer}</p>
 
       {template && <ReplyDrafter template={template} card={card} onClose={() => setTemplateId(null)} />}
     </div>

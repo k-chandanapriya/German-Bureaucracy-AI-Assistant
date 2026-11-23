@@ -18,14 +18,19 @@ export default function GlossaryPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold">Amtsdeutsch glossary</h1>
+      <div>
+        <p className="mono-label mb-3">Amtspost / Glossary</p>
+        <h1 className="text-4xl font-light tracking-tight sm:text-5xl">
+          <span className="framed">Amtsdeutsch</span> glossary
+        </h1>
+      </div>
       <input className="input" placeholder="Search, e.g. Bescheid" value={q} onChange={(e) => setQ(e.target.value)} />
       {error && <p className="text-red-700">{error}</p>}
-      <dl className="card divide-y divide-stone-100">
+      <dl className="card divide-y divide-line">
         {entries.map(([term, def]) => (
           <div key={term} className="py-3">
-            <dt className="font-semibold">{term}</dt>
-            <dd className="text-stone-600">{def}</dd>
+            <dt className="font-mono text-[13px] uppercase tracking-[0.08em] text-accent">{term}</dt>
+            <dd className="text-ink/65">{def}</dd>
           </div>
         ))}
       </dl>

@@ -75,8 +75,8 @@ export default function ReplyDrafter({
       <div className="card my-8 w-full max-w-4xl space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold">{template.title}</h2>
-            <p className="mt-1 rounded-md bg-blue-50 px-2 py-1 text-xs text-blue-800">📬 {template.channel}</p>
+            <h2 className="text-2xl font-light">{template.title}</h2>
+            <p className="mono-label mt-2 border-l-2 border-accent pl-2 normal-case tracking-normal text-ink/70">{template.channel}</p>
           </div>
           <button className="btn-secondary" onClick={onClose}>
             Close
@@ -116,14 +116,14 @@ export default function ReplyDrafter({
         ) : (
           <div className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl bg-stone-50 p-4">
+              <div className="bg-paper p-4">
                 <p className="label">German (this is what you send)</p>
-                <p className="font-semibold">{draft.subject_de}</p>
+                <p className="font-medium">{draft.subject_de}</p>
                 <p className="mt-3 whitespace-pre-wrap text-sm">Sehr geehrte Damen und Herren,{"\n\n"}{draft.body_de}{"\n\n"}Mit freundlichen Grüßen</p>
               </div>
-              <div className="rounded-xl border border-dashed border-stone-300 p-4">
+              <div className="border border-dashed border-ink/25 p-4">
                 <p className="label">English (so you know what you sign)</p>
-                <p className="whitespace-pre-wrap text-sm text-stone-700">{draft.body_en}</p>
+                <p className="whitespace-pre-wrap text-sm text-ink/75">{draft.body_en}</p>
               </div>
             </div>
 
@@ -162,7 +162,7 @@ export default function ReplyDrafter({
                 Edit fields
               </button>
             </div>
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-ink/55">
               Print, sign by hand and keep a copy. This template gives you the form; whether to appeal is your decision. If in doubt,
               ask a Steuerberater, Lohnsteuerhilfeverein or lawyer.
             </p>

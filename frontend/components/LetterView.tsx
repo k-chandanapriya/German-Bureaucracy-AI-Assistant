@@ -21,6 +21,6 @@ export default function LetterView() {
   }, [id]);
 
   if (error) return <p className="text-red-700">{error}</p>;
-  if (!card) return <p className="text-stone-500">Loading…</p>;
+  if (!card) return <p className="text-ink/55">Loading…</p>;
   return <LetterResult key={card.letter_id} initial={card} meta={meta} />;
 }

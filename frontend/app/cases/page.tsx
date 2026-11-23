@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, STATUS_LABELS, type CaseSummary } from "@/lib/api";
 
-const SENDER_ICON: Record<string, string> = {
-  finanzamt: "🧾",
-  auslaenderbehoerde: "🛂",
-  beitragsservice: "📺",
-  other: "✉️",
+const SENDER_TAG: Record<string, string> = {
+  finanzamt: "FA",
+  auslaenderbehoerde: "ABH",
+  beitragsservice: "RB",
+  other: "—",
 };
 
 export default function CasesPage() {
@@ -20,16 +20,19 @@ export default function CasesPage() {
   }, []);
 
   if (error) return <p className="text-red-700">{error}</p>;
-  if (!cases) return <p className="text-stone-500">Loading…</p>;
+  if (!cases) return <p className="text-ink/55">Loading…</p>;
 
   const open = cases.filter((c) => c.status !== "closed");
   const closed = cases.filter((c) => c.status === "closed");
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">My cases</h1>
+      <div>
+        <p className="mono-label mb-3">Amtspost / Cases</p>
+        <h1 className="text-4xl font-light tracking-tight sm:text-5xl">My cases</h1>
+      </div>
       {cases.length === 0 && (
-        <p className="card text-stone-600">
+        <p className="card text-ink/65">
           No letters yet. <Link className="underline" href="/">Scan your first letter</Link>.
         </p>
       )}
@@ -39,13 +42,15 @@ export default function CasesPage() {
       ].map(([title, list]) =>
         (list as CaseSummary[]).length ? (
           <section key={title as string} className="space-y-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">{title as string}</h2>
+            <h2 className="mono-label">{title as string}</h2>
             {(list as CaseSummary[]).map((c) => (
-              <Link key={c.id} href={`/cases/${c.id}`} className="card flex items-center gap-4 transition hover:border-stone-400">
-                <span className="text-2xl">{SENDER_ICON[c.sender_category] ?? "✉️"}</span>
+              <Link key={c.id} href={`/cases/${c.id}`} className="card flex items-center gap-4 transition hover:border-ink/50">
+                <span className="grid h-11 w-11 shrink-0 place-items-center border border-accent/60 font-mono text-[11px] tracking-wider text-accent">
+                  {SENDER_TAG[c.sender_category] ?? "—"}
+                </span>
                 <span className="flex-1">
                   <span className="block font-medium">{c.title}</span>
-                  <span className="text-sm text-stone-500">
+                  <span className="text-sm text-ink/55">
                     {c.sender_name} · {c.letter_count} letter{c.letter_count > 1 ? "s" : ""}
                     {c.reference && ` · ${c.reference}`}
                   </span>
@@ -54,8 +59,8 @@ export default function CasesPage() {
                   )}
                 </span>
                 <span className="text-right text-sm">
-                  <span className="block rounded-full bg-stone-100 px-2.5 py-0.5">{STATUS_LABELS[c.status] ?? c.status}</span>
-                  {c.next_deadline && <span className="mt-1 block text-stone-500">next: {c.next_deadline.due_date_display}</span>}
+                  <span className="mono-label inline-block border border-ink/25 px-2 py-0.5 text-ink/75">{STATUS_LABELS[c.status] ?? c.status}</span>
+                  {c.next_deadline && <span className="mono-label mt-2 block normal-case tracking-normal">Next: {c.next_deadline.due_date_display}</span>}
                 </span>
               </Link>
             ))}
