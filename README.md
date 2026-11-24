@@ -2,6 +2,10 @@
 
 Your German letters, briefly.
 
+Try it here: https://k-chandanapriya.github.io/German-Bureaucracy-AI-Assistant/
+
+(It runs on a free server that falls asleep when nobody is using it, so the first visit can take about a minute to load.)
+
 If you live in Germany and don't read German well, you know the feeling. A letter arrives from the Finanzamt, the Ausländerbehörde or the Beitragsservice, it's two pages of Amtsdeutsch, and somewhere in there is a deadline you really shouldn't miss.
 
 Briefly helps with that. You take a photo of the letter (or upload the PDF) and it tells you what the letter is, what you need to do, and by when. It can put the deadline in your calendar, draft a reply in German, and keep all the letters about the same matter together.
