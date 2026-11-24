@@ -42,6 +42,9 @@ Answer with one JSON object that matches the JSON schema below, nothing else.
 All explanations (title, tldr, details, check_this, required_actions, the "en" side of
 line_by_line) must be in English. Keep German terms only where the schema asks for them.
 Set confidence honestly: below 0.7 if any date, amount or IBAN was hard to read.
+Keep the answer compact (the free service allows only about 1,000 output tokens a minute):
+tldr at most 2 sentences, details at most 4 sentences, at most 4 items in check_this and
+required_actions, and line_by_line only for the 6 most important lines of the letter.
 """
 
 TRANSCRIBE_PROMPT = (
@@ -51,10 +54,6 @@ TRANSCRIBE_PROMPT = (
 
 MAX_RATE_LIMIT_WAITS = 6
 MAX_WAIT_S = 60
-
-# Answer budgets. Free tiers count tokens per minute, so asking for less helps.
-TRANSCRIBE_MAX_TOKENS = 1500
-EXTRACT_MAX_TOKENS = 3000
 
 # Set to False once the server says it doesn't understand reasoning_effort.
 _reasoning_param_ok = True
@@ -123,7 +122,7 @@ def _chat(payload: dict, progress: Progress) -> str:
             raise ExtractionError(
                 "This letter is too long for the free AI service in one go. "
                 "Upload only the pages that matter (usually the first page and the page with the deadline). "
-                f"(AI service said: {message[:200]})"
+                f"(AI service said: {re.sub(r'in organization `[^`]*` ', '', message)[:200]})"
             )
         if r.status_code == 429 and re.search(r"per day|\b(TPD|RPD)\b", message):
             raise ExtractionError("The free AI service's daily limit is used up. Please try again tomorrow.")
@@ -160,7 +159,6 @@ def transcribe(pages: list[Page], progress: Progress = _no_progress) -> str:
             image = base64.b64encode(page.image or b"").decode("ascii")
             text = _chat(
                 {
-                    "max_completion_tokens": TRANSCRIBE_MAX_TOKENS,
                     "messages": [
                         {
                             "role": "user",
@@ -190,7 +188,6 @@ def extract_letter_groq(
     content = _chat(
         {
             "response_format": {"type": "json_object"},
-            "max_completion_tokens": EXTRACT_MAX_TOKENS,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT + HINTS + "\nJSON schema:\n" + SCHEMA_JSON},
                 {"role": "user", "content": "Here is the transcribed letter:\n\n" + transcript},
