@@ -9,8 +9,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
-    # Which model reads letters: "anthropic" (Claude API) or "ollama" (local, nothing leaves the computer)
-    ai_provider: Literal["anthropic", "ollama"] = "anthropic"
+    # Which model reads letters:
+    #   "ollama"    local model, nothing leaves the computer (free)
+    #   "groq"      free hosted model via Groq (or any OpenAI-compatible API)
+    #   "anthropic" Claude API (paid)
+    ai_provider: Literal["anthropic", "ollama", "groq"] = "anthropic"
+
+    # Free hosted model (OpenAI-compatible API). Key: console.groq.com
+    groq_api_key: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    groq_model: str = "qwen/qwen3.8-27b"
+    groq_timeout_s: float = 120
 
     # Local model via Ollama
     ollama_url: str = "http://localhost:11434"

@@ -16,6 +16,10 @@ def extract_letter(
         from app.extraction.ollama_extractor import extract_letter_ollama
 
         return extract_letter_ollama(files, progress)
+    if settings.ai_provider == "groq":
+        from app.extraction.groq_extractor import extract_letter_groq
+
+        return extract_letter_groq(files, progress)
 
     from app.extraction.claude_extractor import extract_letter as extract_letter_claude
 

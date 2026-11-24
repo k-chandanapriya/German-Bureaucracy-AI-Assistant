@@ -13,13 +13,14 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.13.9
+      # Free hosted model on Groq (no credit card). Free key: console.groq.com
       - key: AI_PROVIDER
-        value: anthropic
-      - key: ANTHROPIC_API_KEY
+        value: groq
+      - key: GROQ_API_KEY
         sync: false # you paste it in the Render dashboard; never commit it
       - key: CORS_ORIGINS
         value: https://k-chandanapriya.github.io
-      # Each letter read costs a few cents of Claude usage: cap it.
+      # Groq's free tier allows ~1,000 requests a day; keep the demo well inside it.
       - key: MAX_READS_PER_DAY
         value: "30"
       - key: MAX_READS_PER_IP_PER_DAY

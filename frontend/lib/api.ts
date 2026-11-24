@@ -73,7 +73,7 @@ export interface Meta {
   reply_templates: ReplyTemplate[];
   samples: { id: string; label: string; preview: string }[];
   case_statuses: string[];
-  ai_provider: "anthropic" | "ollama";
+  ai_provider: "anthropic" | "ollama" | "groq";
   ai_model: string;
   /** Official product name, e.g. "Qwen2.5-VL 7B by Alibaba Cloud" */
   ai_model_name: string;

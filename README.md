@@ -11,7 +11,7 @@ Take a photo of an official German letter. Briefly tells you **what it is, what 
 | Step | How |
 |---|---|
 | **Capture** | Upload photos (several pages) or a PDF |
-| **Understand** | A vision model reads the letter into a strict JSON schema: sender, letter type, reference numbers, amounts, IBAN, printed dates, appeal period. Choose a **local model via Ollama** (free, nothing leaves your computer) or **Claude** (best accuracy) |
+| **Understand** | A vision model reads the letter into a strict JSON schema: sender, letter type, reference numbers, amounts, IBAN, printed dates, appeal period. Choose a **local model via Ollama** (free, nothing leaves your computer), a **free hosted model on Groq**, or **Claude** (best accuracy) |
 | **Explain** | Plain English at three depths: *In short → Details → Line by line*, plus "if you do nothing" and an Amtsdeutsch glossary |
 | **Deadlines** | A **deterministic engine** (plain Python, not the LLM) applies the 4-day notification rule, §§ 187–193 BGB / § 108 AO / § 31 VwVfG, month ends, weekends and **state-specific holidays**, and shows each step |
 | **Act** | `.ics` calendar file with reminders 7, 3 and 1 day before; GiroCode QR for banking apps; reviewed German reply templates with an English back-translation, exported as a DIN 5008 PDF |
@@ -33,6 +33,7 @@ Deadline: Mon 5 Jan 2026, end of day (24:00)
 - **Backend:** Python 3.12+, FastAPI, SQLModel (SQLite locally, Postgres in production)
 - **AI (pick one in `backend/.env`):**
   - `AI_PROVIDER=ollama`: local vision model (default `qwen2.5vl:7b`) via [Ollama](https://ollama.com); PDFs are rendered to page images with `pypdfium2`
+  - `AI_PROVIDER=groq`: free hosted vision model (default `qwen/qwen3.8-27b`) on [Groq](https://console.groq.com); works with any OpenAI-compatible API via `GROQ_BASE_URL`
   - `AI_PROVIDER=anthropic`: Claude Sonnet 5.5 with structured output; low-confidence letters are re-read by Claude Opus 5.5
 - **Deadlines:** `holidays` (per-Bundesland public holidays) + `python-dateutil`
 - **Outputs:** `fpdf2` (DIN 5008 letters), `segno` (EPC GiroCode), hand-written RFC 5545 `.ics`
@@ -81,18 +82,18 @@ cd frontend && npm run lint && npm run build
 ## Live version
 
 - **Website:** https://k-chandanapriya.github.io/German-Bureaucracy-AI-Assistant/ (GitHub Pages, static export of `frontend/`)
-- **API:** a free [Render](https://render.com) web service, defined in [`render.yaml`](render.yaml). The live version reads letters with Claude, because a local Ollama model is too large for free hosting.
+- **API:** a free [Render](https://render.com) web service, defined in [`render.yaml`](render.yaml). The live version reads letters with **Qwen3.8 27B on Groq's free tier** (no credit card), because a local Ollama model is too large for free hosting. Groq doesn't keep inference inputs by default.
 
 How the pieces fit:
 
-1. **Backend on Render:** New → Blueprint → pick this repo. Render reads `render.yaml` and asks for `ANTHROPIC_API_KEY`. Copy the service URL, e.g. `https://briefly-api.onrender.com`.
+1. **Backend on Render:** New → Blueprint → pick this repo. Render reads `render.yaml` and asks for `GROQ_API_KEY` (free at [console.groq.com](https://console.groq.com/keys)). Copy the service URL, e.g. `https://briefly-api.onrender.com`.
 2. **Website on GitHub Pages:** set the repository variable `API_URL` to that URL (Settings → Secrets and variables → Actions → Variables). Every push to `main` that touches `frontend/` rebuilds the site via [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
 
 Things to know about the free setup:
 
 - The API sleeps after 15 minutes without visitors; the first request then takes about a minute.
 - The database is SQLite on Render's temporary disk, so saved cases disappear when the service restarts or redeploys. Set `DATABASE_URL` to a Postgres database to keep them.
-- Each browser only sees its own cases (a random id kept in the browser), and reading is capped per day (`MAX_READS_PER_DAY`, `MAX_READS_PER_IP_PER_DAY`) so the demo can't run up the Claude bill.
+- Each browser only sees its own cases (a random id kept in the browser), and reading is capped per day (`MAX_READS_PER_DAY`, `MAX_READS_PER_IP_PER_DAY`) so the demo stays inside Groq's free limits.
 
 ## Project layout
 

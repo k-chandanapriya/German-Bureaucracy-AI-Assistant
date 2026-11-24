@@ -161,7 +161,9 @@ export default function Home() {
           <p className="text-[11px] leading-relaxed text-ink/55">
             {meta?.ai_provider === "ollama"
               ? `Read by ${meta.ai_model_name}, running locally on this computer. Nothing is sent to the internet. Reading takes about a minute per page.`
-              : `Read by ${meta?.ai_model_name ?? "Claude"}: your letter is sent to Anthropic to be read, and only the extracted details are saved. Your cases are visible only in this browser.`}{" "}
+              : meta?.ai_provider === "groq"
+                ? `Read by ${meta.ai_model_name}, running on Groq's free service. Groq doesn't keep your letter; only the extracted details are saved, and your cases are visible only in this browser.`
+                : `Read by ${meta?.ai_model_name ?? "Claude"}: your letter is sent to Anthropic to be read, and only the extracted details are saved. Your cases are visible only in this browser.`}{" "}
             You can delete a case at any time.
           </p>
         </div>

@@ -87,6 +87,7 @@ def health() -> dict:
 # Official product names for the model ids we ship with, shown to users.
 MODEL_NAMES = {
     "qwen2.5vl:7b": "Qwen2.5-VL 7B by Alibaba Cloud",
+    "qwen/qwen3.8-27b": "Qwen3.8 27B by Alibaba Cloud",
     "claude-sonnet-5-5": "Claude Sonnet 5.5 by Anthropic",
     "claude-opus-5-5": "Claude Opus 5.5 by Anthropic",
 }
@@ -94,7 +95,7 @@ MODEL_NAMES = {
 
 @app.get("/api/meta")
 def meta() -> dict:
-    model = settings.ollama_model if settings.ai_provider == "ollama" else settings.extraction_model
+    model = {"ollama": settings.ollama_model, "groq": settings.groq_model}.get(settings.ai_provider, settings.extraction_model)
     return {
         "bundeslaender": BUNDESLAENDER,
         "default_bundesland": settings.default_bundesland,
