@@ -122,7 +122,8 @@ def _chat(payload: dict, progress: Progress) -> str:
             # One request needs more than the whole per-minute allowance: waiting won't help.
             raise ExtractionError(
                 "This letter is too long for the free AI service in one go. "
-                "Upload only the pages that matter (usually the first page and the page with the deadline)."
+                "Upload only the pages that matter (usually the first page and the page with the deadline). "
+                f"(AI service said: {message[:200]})"
             )
         if r.status_code == 429 and re.search(r"per day|\b(TPD|RPD)\b", message):
             raise ExtractionError("The free AI service's daily limit is used up. Please try again tomorrow.")
