@@ -134,8 +134,11 @@ async function backend(path: string, init: RequestInit = {}): Promise<Response> 
   try {
     return await fetch(`${API_URL}${path}`, { ...init, headers });
   } catch {
+    const onLocalPage = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
     throw new Error(
-      IS_LOCAL
+      IS_LOCAL && !onLocalPage
+        ? "This website isn't connected to its server yet, so letters can't be read here. Please check back soon."
+        : IS_LOCAL
         ? `Can't reach the backend. Is it running on ${API_URL}?`
         : "Can't reach the server. It sleeps when nobody uses it and takes about a minute to wake up. Please try again shortly.",
     );
