@@ -1,68 +1,67 @@
-# Briefly: German Bureaucracy AI Assistant
+# Briefly
 
-*Your German letters, briefly.*
+Your German letters, briefly.
 
-Take a photo of an official German letter. Briefly tells you **what it is, what you have to do and by when**. It puts the deadline in your calendar, drafts the German reply and keeps every letter of a case together.
+If you live in Germany and don't read German well, you know the feeling. A letter arrives from the Finanzamt, the Ausländerbehörde or the Beitragsservice, it's two pages of Amtsdeutsch, and somewhere in there is a deadline you really shouldn't miss.
 
-> Built for the ~14 million foreign nationals in Germany who get letters from the Finanzamt, the Ausländerbehörde and the Beitragsservice and have to work out "one month after notification" on their own.
+Briefly helps with that. You take a photo of the letter (or upload the PDF) and it tells you what the letter is, what you need to do, and by when. It can put the deadline in your calendar, draft a reply in German, and keep all the letters about the same matter together.
 
-## What it does
+## What it can do
 
-| Step | How |
-|---|---|
-| **Capture** | Upload photos (several pages) or a PDF |
-| **Understand** | A vision model reads the letter into a strict JSON schema: sender, letter type, reference numbers, amounts, IBAN, printed dates, appeal period. Choose a **local model via Ollama** (free, nothing leaves your computer), a **free hosted model on Groq**, or **Claude** (best accuracy) |
-| **Explain** | Plain English at three depths: *In short → Details → Line by line*, plus "if you do nothing" and an Amtsdeutsch glossary |
-| **Deadlines** | A **deterministic engine** (plain Python, not the LLM) applies the 4-day notification rule, §§ 187–193 BGB / § 108 AO / § 31 VwVfG, month ends, weekends and **state-specific holidays**, and shows each step |
-| **Act** | `.ics` calendar file with reminders 7, 3 and 1 day before; GiroCode QR for banking apps; reviewed German reply templates with an English back-translation, exported as a DIN 5008 PDF |
-| **Track** | Letters with the same Steuernummer / Aktenzeichen / Beitragsnummer are grouped into a case with a timeline and status. After 6 weeks of waiting it suggests a Sachstandsanfrage |
+1. Read the letter. You can upload a few photos or a PDF. A vision model picks out the sender, the type of letter, reference numbers, amounts, the IBAN, the date on the letter and the appeal period.
+2. Explain it in plain English. There's a short summary, a longer explanation and a line by line translation. It also tells you what happens if you ignore the letter, and there's a small glossary for the typical Amtsdeutsch words.
+3. Work out the real deadline. This part doesn't use AI at all. It's plain Python that follows the actual rules: the letter counts as delivered four days after it was posted, then the appeal period is added, and if the last day falls on a weekend or a public holiday in your state, it moves to the next working day. You can see every step of the calculation, so you don't have to trust it blindly.
+4. Help you act. You get a calendar file with reminders a week, three days and one day before the deadline, a GiroCode you can scan with your banking app if you have to pay something, and reply templates in German with an English translation next to them. Replies can be downloaded as a proper German letter (DIN 5008) in PDF.
+5. Keep track. Letters with the same tax number, file number or contribution number end up in one case, with a timeline and a status. If you've been waiting on an answer for six weeks, it suggests sending a status inquiry.
 
-v1 covers **3 senders and 19 letter types** (Finanzamt, Ausländerbehörde, Beitragsservice) and **13 reply templates**.
+Right now it knows three senders (Finanzamt, Ausländerbehörde and Beitragsservice), 19 kinds of letters and 13 reply templates.
 
-Example deadline with its reasoning:
+Here's an example of how a deadline is worked out:
 
 ```
-Letter dated Mon 1 Dec 2025 + 4 days (§ 122 (2) AO, 4-day rule since 2025) = deemed received Fri 5 Dec 2025
-Fri 5 Dec 2025 + 1 month = Mon 5 Jan 2026
-Deadline: Mon 5 Jan 2026, end of day (24:00)
+Letter dated Mon 1 Dec 2025
++ 4 days until it counts as delivered   Fri 5 Dec 2025
++ 1 month appeal period                 Mon 5 Jan 2026
+Deadline: Mon 5 Jan 2026, end of the day
 ```
 
-## Tech stack
+## Which AI reads the letter
 
-- **Frontend:** Next.js 16 (App Router, TypeScript, Tailwind CSS 4)
-- **Backend:** Python 3.12+, FastAPI, SQLModel (SQLite locally, Postgres in production)
-- **AI (pick one in `backend/.env`):**
-  - `AI_PROVIDER=ollama`: local vision model (default `qwen2.5vl:7b`) via [Ollama](https://ollama.com); PDFs are rendered to page images with `pypdfium2`
-  - `AI_PROVIDER=groq`: free hosted vision model (default `qwen/qwen3.8-27b`) on [Groq](https://console.groq.com); works with any OpenAI-compatible API via `GROQ_BASE_URL`
-  - `AI_PROVIDER=anthropic`: Claude Sonnet 5.5 with structured output; low-confidence letters are re-read by Claude Opus 5.5
-- **Deadlines:** `holidays` (per-Bundesland public holidays) + `python-dateutil`
-- **Outputs:** `fpdf2` (DIN 5008 letters), `segno` (EPC GiroCode), hand-written RFC 5545 `.ics`
+You choose one in `backend/.env` (the file `backend/.env.example` shows all the options):
 
-## Run it locally
+* Ollama, a model that runs on your own computer. It's free and the letter never leaves your machine. The default model is qwen2.5vl:7b.
+* Groq, a hosted model with a free tier. You need a free API key from console.groq.com.
+* Claude from Anthropic. This one is paid, but it's the most accurate.
 
-You need Python 3.12+ and Node.js 20+.
+## How it's built
 
-**1. AI model.** Either run a local model (free and private):
+The frontend is Next.js 16 with TypeScript and Tailwind CSS. The backend is Python with FastAPI and SQLModel, using SQLite on your machine and Postgres if you deploy it. Public holidays come from the holidays package, the PDF letters are made with fpdf2, and the GiroCode with segno.
+
+## Running it on your computer
+
+You need Python 3.12 or newer and Node.js 20 or newer.
+
+First get a model. The easiest free option is Ollama:
 
 ```bash
 brew install ollama
-ollama serve                 # or open the Ollama app
-ollama pull qwen2.5vl:7b     # ~6 GB, needs about 8 GB of free RAM
+ollama serve
+ollama pull qwen2.5vl:7b
 ```
 
-or set `AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` in `backend/.env`.
+The model is about 6 GB and needs around 8 GB of free memory. If that's too much for your laptop, use Groq or Claude instead (see above).
 
-**2. Backend** (http://localhost:8010)
+Then start the backend. It runs on http://localhost:8010:
 
 ```bash
 cd backend
 python3 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
-cp .env.example .env        # AI_PROVIDER=ollama by default
+cp .env.example .env
 .venv/bin/uvicorn app.main:app --reload --port 8010
 ```
 
-**3. Frontend** (http://localhost:3000)
+And the frontend in a second terminal. It runs on http://localhost:3000:
 
 ```bash
 cd frontend
@@ -70,60 +69,37 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. Without any AI model you can still use the deadline calculator and the glossary; the fictional sample letters are available through the API (`POST /api/letters/sample/{id}`, see http://localhost:8010/docs).
+Even without any model you can use the deadline calculator and the glossary.
 
-**Tests**
+To run the tests:
 
 ```bash
 cd backend && .venv/bin/python -m pytest
 cd frontend && npm run lint && npm run build
 ```
 
-## Live version
-
-- **Website:** https://k-chandanapriya.github.io/German-Bureaucracy-AI-Assistant/ (GitHub Pages, static export of `frontend/`)
-- **API:** a free [Render](https://render.com) web service, defined in [`render.yaml`](render.yaml). The live version reads letters with **Qwen3.8 27B on Groq's free tier** (no credit card), because a local Ollama model is too large for free hosting. Groq doesn't keep inference inputs by default.
-
-How the pieces fit:
-
-1. **Backend on Render:** New → Blueprint → pick this repo. Render reads `render.yaml` and asks for `GROQ_API_KEY` (free at [console.groq.com](https://console.groq.com/keys)). Copy the service URL, e.g. `https://briefly-api.onrender.com`.
-2. **Website on GitHub Pages:** set the repository variable `API_URL` to that URL (Settings → Secrets and variables → Actions → Variables). Every push to `main` that touches `frontend/` rebuilds the site via [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
-
-Things to know about the free setup:
-
-- The API sleeps after 15 minutes without visitors; the first request then takes about a minute.
-- The database is SQLite on Render's temporary disk, so saved cases disappear when the service restarts or redeploys. Set `DATABASE_URL` to a Postgres database to keep them.
-- Each browser only sees its own cases (a random id kept in the browser), and reading is capped per day (`MAX_READS_PER_DAY`, `MAX_READS_PER_IP_PER_DAY`) so the demo stays inside Groq's free limits.
-
-## Project layout
+## Where things are
 
 ```
-backend/
-  app/
-    deadlines/engine.py        deterministic deadline engine (no AI)
-    extraction/                Claude vision extractor, schema, validators, sample letters
-    knowledge/                 letter-type taxonomy, glossary
-    replies/                   German reply templates + DIN 5008 PDF
-    services/                  result card, .ics calendar, GiroCode
-    db.py, main.py             persistence and REST API
-  tests/
-frontend/
-  app/                         pages: scan, letter result, cases, deadline calculator, glossary
-  components/                  result card, deadline list, reply drafter …
-docs/
-  ARCHITECTURE.md, LEGAL.md
+backend/app/deadlines     the deadline rules
+backend/app/extraction    reading letters with the different models
+backend/app/knowledge     letter types and the glossary
+backend/app/replies       German reply templates and the PDF letter
+backend/app/services      calendar file, GiroCode, the result card
+backend/tests             tests
+frontend/app              the pages
+frontend/components       the building blocks of the pages
+docs                      architecture notes and legal notes
 ```
 
-## Important
+## Please note
 
-Briefly gives **information, not legal or tax advice** (Rechtsdienstleistungsgesetz, Steuerberatungsgesetz). It explains, translates, computes deadlines and offers templates the user chooses. Always check dates and amounts against the original letter. See [docs/LEGAL.md](docs/LEGAL.md).
+Briefly gives you information, not legal or tax advice. It explains, translates, calculates deadlines and offers templates, but you decide what to send. Always compare the dates and amounts with your original letter. There's more about this in [docs/LEGAL.md](docs/LEGAL.md).
 
-## Roadmap
+## What I'd like to add next
 
-- [x] Upload → classify → explain → deadline → `.ics` (3 senders, 19 letter types)
-- [x] Reply templates + DIN 5008 PDF, case timeline
-- [ ] OCR cross-check of amounts/IBAN (PaddleOCR)
-- [ ] Google / Outlook calendar sync, push reminders
-- [ ] Official PDF form filling (Beitragsservice, ABH forms per city)
-- [ ] Mobile app (Expo) with document scanner
-- [ ] More senders: Krankenkasse, Familienkasse, Jobcenter, Bußgeldbescheid
+* A second check of amounts and IBANs with OCR
+* Syncing with Google and Outlook calendars, and push reminders
+* Filling in official forms, like the ones from the Beitragsservice or your local Ausländerbehörde
+* A phone app with a document scanner
+* More senders: health insurance, Familienkasse, Jobcenter, fines
