@@ -17,7 +17,7 @@ def client(owner: str = OWNER) -> TestClient:
 
 def test_health_and_meta():
     with client() as c:
-        assert c.get("/api/health").json() == {"status": "ok"}
+        assert c.get("/api/health").json()["status"] == "ok"
         meta = c.get("/api/meta").json()
         assert "BE" in meta["bundeslaender"]
         assert len(meta["letter_types"]) >= 19

@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     groq_base_url: str = "https://api.groq.com/openai/v1"
     groq_model: str = "qwen/qwen3.8-27b"
     groq_timeout_s: float = 120
+    # "none" switches the model's step-by-step thinking off (fewer tokens); "" leaves it on.
+    groq_reasoning_effort: str = "none"
 
     # Local model via Ollama
     ollama_url: str = "http://localhost:11434"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import date, datetime, timedelta, timezone
 
@@ -81,7 +82,8 @@ def _check_land(bundesland: str) -> str:
 # --------------------------------------------------------------------- meta
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok"}
+    # Render sets RENDER_GIT_COMMIT, which shows which version is running.
+    return {"status": "ok", "version": os.environ.get("RENDER_GIT_COMMIT", "local")[:7]}
 
 
 # Official product names for the model ids we ship with, shown to users.

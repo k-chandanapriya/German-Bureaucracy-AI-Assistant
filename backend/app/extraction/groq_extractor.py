@@ -49,8 +49,15 @@ TRANSCRIBE_PROMPT = (
     "keeping the original German spelling, numbers and punctuation. Output only the text."
 )
 
-MAX_RATE_LIMIT_WAITS = 3
-MAX_WAIT_S = 65
+MAX_RATE_LIMIT_WAITS = 6
+MAX_WAIT_S = 60
+
+# Answer budgets. Free tiers count tokens per minute, so asking for less helps.
+TRANSCRIBE_MAX_TOKENS = 1500
+EXTRACT_MAX_TOKENS = 3000
+
+# Set to False once the server says it doesn't understand reasoning_effort.
+_reasoning_param_ok = True
 
 
 def _no_progress(_: str) -> None:
@@ -62,8 +69,28 @@ def _strip_thinking(text: str) -> str:
     return re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip()
 
 
+def _error_message(r: httpx.Response) -> str:
+    try:
+        return str(r.json().get("error", {}).get("message", r.text))
+    except (ValueError, AttributeError):
+        return r.text
+
+
+def _wait_seconds(r: httpx.Response, message: str) -> float:
+    """How long the server wants us to wait: the retry-after header, or "try again in 1m7.5s"."""
+    try:
+        return float(r.headers["retry-after"])
+    except (KeyError, ValueError):
+        pass
+    m = re.search(r"try again in (?:(\d+)m)?([\d.]+)s", message)
+    if m:
+        return int(m.group(1) or 0) * 60 + float(m.group(2))
+    return 20.0
+
+
 def _chat(payload: dict, progress: Progress) -> str:
     """POST /chat/completions and return the answer text. Waits out free-tier rate limits."""
+    global _reasoning_param_ok
     if not settings.groq_api_key:
         raise ExtractionError(
             "No Groq API key configured. Create a free key at console.groq.com and set GROQ_API_KEY."
@@ -71,7 +98,11 @@ def _chat(payload: dict, progress: Progress) -> str:
     url = settings.groq_base_url.rstrip("/") + "/chat/completions"
     headers = {"Authorization": f"Bearer {settings.groq_api_key}"}
     payload = {"model": settings.groq_model, "temperature": 0, **payload}
-    for attempt in range(MAX_RATE_LIMIT_WAITS + 1):
+    # Thinking out loud costs tokens and time; reading a letter doesn't need it.
+    if settings.groq_reasoning_effort and _reasoning_param_ok:
+        payload["reasoning_effort"] = settings.groq_reasoning_effort
+    attempt = 0
+    while True:
         try:
             r = httpx.post(url, json=payload, headers=headers, timeout=settings.groq_timeout_s)
         except httpx.TimeoutException as e:
@@ -79,15 +110,28 @@ def _chat(payload: dict, progress: Progress) -> str:
         except httpx.HTTPError as e:
             raise ExtractionError("Can't reach the AI service right now. Please try again in a moment.") from e
 
+        if r.status_code >= 400:
+            message = _error_message(r)
+            log.warning("AI service answered %s: %s", r.status_code, message[:500])
+        if r.status_code == 400 and "reasoning" in message.lower() and "reasoning_effort" in payload:
+            # This model doesn't support switching reasoning off: ask again without it.
+            _reasoning_param_ok = False
+            payload.pop("reasoning_effort")
+            continue
+        if r.status_code == 413 or (r.status_code == 429 and "request too large" in message.lower()):
+            # One request needs more than the whole per-minute allowance: waiting won't help.
+            raise ExtractionError(
+                "This letter is too long for the free AI service in one go. "
+                "Upload only the pages that matter (usually the first page and the page with the deadline)."
+            )
+        if r.status_code == 429 and re.search(r"per day|\b(TPD|RPD)\b", message):
+            raise ExtractionError("The free AI service's daily limit is used up. Please try again tomorrow.")
         if r.status_code == 429 and attempt < MAX_RATE_LIMIT_WAITS:
             # Free tier: a few thousand tokens per minute. Wait as long as the server asks.
-            try:
-                wait = float(r.headers.get("retry-after", "20"))
-            except ValueError:
-                wait = 20.0
-            wait = min(max(wait, 1.0), MAX_WAIT_S)
+            attempt += 1
+            wait = min(max(_wait_seconds(r, message), 1.0), MAX_WAIT_S)
             progress(f"Free AI service is busy, waiting {round(wait)}s")
-            time.sleep(wait)
+            time.sleep(wait + 0.5)
             continue
         if r.status_code == 429:
             raise ExtractionError("The free AI service is busy (rate limit). Please try again in a few minutes.")
@@ -96,16 +140,11 @@ def _chat(payload: dict, progress: Progress) -> str:
         if r.status_code == 404:
             raise ExtractionError(f"The AI service doesn't offer the model '{settings.groq_model}'. Check GROQ_MODEL.")
         if r.status_code >= 400:
-            try:
-                detail = r.json().get("error", {}).get("message", r.text)
-            except (ValueError, AttributeError):
-                detail = r.text
-            raise ExtractionError(f"AI service error: {detail}")
+            raise ExtractionError(f"AI service error: {message}")
         try:
             return _strip_thinking(r.json()["choices"][0]["message"]["content"] or "")
         except (ValueError, KeyError, IndexError) as e:
             raise ExtractionError("The AI service sent an unexpected answer. Please try again.") from e
-    raise AssertionError("unreachable")
 
 
 def transcribe(pages: list[Page], progress: Progress = _no_progress) -> str:
@@ -120,6 +159,7 @@ def transcribe(pages: list[Page], progress: Progress = _no_progress) -> str:
             image = base64.b64encode(page.image or b"").decode("ascii")
             text = _chat(
                 {
+                    "max_completion_tokens": TRANSCRIBE_MAX_TOKENS,
                     "messages": [
                         {
                             "role": "user",
@@ -149,6 +189,7 @@ def extract_letter_groq(
     content = _chat(
         {
             "response_format": {"type": "json_object"},
+            "max_completion_tokens": EXTRACT_MAX_TOKENS,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT + HINTS + "\nJSON schema:\n" + SCHEMA_JSON},
                 {"role": "user", "content": "Here is the transcribed letter:\n\n" + transcript},
