@@ -1,4 +1,4 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8010";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8010";
 
 export type Severity = "info" | "action" | "urgent";
 
@@ -111,13 +111,47 @@ export interface ReadingJob {
   error: string | null;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  let res: Response;
-  try {
-    res = await fetch(`${API_URL}${path}`, init);
-  } catch {
-    throw new Error("Can't reach the backend. Is it running on " + API_URL + "?");
+const IS_LOCAL = /\/\/(localhost|127\.0\.0\.1)[:/]/.test(API_URL);
+const OWNER_KEY = "briefly.owner";
+
+/**
+ * A random id for this browser, sent with every request. The backend shows
+ * each browser only its own cases, so visitors never see each other's letters.
+ */
+function ownerId(): string {
+  let id = localStorage.getItem(OWNER_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(OWNER_KEY, id);
   }
+  return id;
+}
+
+/** fetch() against the backend, with this browser's id attached. */
+async function backend(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  headers.set("X-Briefly-Owner", ownerId());
+  try {
+    return await fetch(`${API_URL}${path}`, { ...init, headers });
+  } catch {
+    throw new Error(
+      IS_LOCAL
+        ? `Can't reach the backend. Is it running on ${API_URL}?`
+        : "Can't reach the server. It sleeps when nobody uses it and takes about a minute to wake up. Please try again shortly.",
+    );
+  }
+}
+
+/** Save a response as a file download. */
+async function download(res: Response, filename: string) {
+  const url = URL.createObjectURL(await res.blob());
+  const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await backend(path, init);
   if (!res.ok) {
     let msg = `Request failed (${res.status})`;
     try {
@@ -167,12 +201,21 @@ export const api = {
     request<CaseSummary>(`/api/cases/${id}`, { ...json({ status }), method: "PATCH" }),
   deleteCase: (id: number) => request<{ deleted: number }>(`/api/cases/${id}`, { method: "DELETE" }),
   pdf: async (body: Record<string, string>): Promise<Blob> => {
-    const res = await fetch(`${API_URL}/api/replies/pdf`, json(body));
+    const res = await backend("/api/replies/pdf", json(body));
     if (!res.ok) throw new Error("Could not create the PDF");
     return res.blob();
   },
-  icsUrl: (letterId: number) => `${API_URL}/api/letters/${letterId}/calendar.ics`,
-  girocodeUrl: (letterId: number) => `${API_URL}/api/letters/${letterId}/girocode.svg`,
+  downloadIcs: async (letterId: number) => {
+    const res = await backend(`/api/letters/${letterId}/calendar.ics`);
+    if (!res.ok) throw new Error("Could not create the calendar file");
+    await download(res, `briefly-letter-${letterId}.ics`);
+  },
+  /** GiroCode as an object URL for an <img>; revoke it when done. */
+  girocode: async (letterId: number): Promise<string> => {
+    const res = await backend(`/api/letters/${letterId}/girocode.svg`);
+    if (!res.ok) throw new Error("No GiroCode for this letter");
+    return URL.createObjectURL(await res.blob());
+  },
 };
 
 export const STATUS_LABELS: Record<string, string> = {

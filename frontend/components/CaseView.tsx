@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, deDate, STATUS_LABELS, type CaseSummary } from "@/lib/api";
 
 const ORDER = ["new", "understood", "action_needed", "replied", "waiting", "closed"];
 
 export default function CaseView() {
-  const { id } = useParams<{ id: string }>();
+  const id = useSearchParams().get("id") ?? "";
   const router = useRouter();
   const [c, setCase] = useState<CaseSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export default function CaseView() {
       <section className="card space-y-2">
         <h2 className="mono-label">Letters</h2>
         {c.letters?.map((l) => (
-          <Link key={l.id} href={`/letters/${l.id}`} className="flex justify-between px-2 py-2 hover:bg-ink/5">
+          <Link key={l.id} href={`/letter?id=${l.id}`} className="flex justify-between px-2 py-2 hover:bg-ink/5">
             <span>{l.title}</span>
             <span className="text-sm text-ink/55">{deDate(l.letter_date)}</span>
           </Link>

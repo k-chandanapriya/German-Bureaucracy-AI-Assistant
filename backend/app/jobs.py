@@ -27,6 +27,7 @@ KEEP_FINISHED_S = 3600
 @dataclass
 class Job:
     id: str
+    owner: str = ""
     status: str = "queued"  # queued | running | done | error
     stage: str = "Waiting for the reader"
     started_at: float = field(default_factory=time.time)
@@ -36,6 +37,7 @@ class Job:
 
     def to_dict(self) -> dict:
         d = asdict(self)
+        d.pop("owner")
         end = self.finished_at or time.time()
         d["elapsed_s"] = round(end - self.started_at)
         return d
@@ -56,10 +58,10 @@ def _cleanup() -> None:
             del _jobs[jid]
 
 
-def submit(work: Callable[[Callable[[str], None]], dict], user_error: type[Exception]) -> Job:
+def submit(work: Callable[[Callable[[str], None]], dict], user_error: type[Exception], owner: str = "") -> Job:
     """Run work(progress) in the background. Errors of type user_error are shown as-is."""
     _cleanup()
-    job = Job(id=uuid.uuid4().hex)
+    job = Job(id=uuid.uuid4().hex, owner=owner)
     with _lock:
         _jobs[job.id] = job
 

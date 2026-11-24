@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import BundeslandSelect, { useBundesland } from "@/components/BundeslandSelect";
@@ -45,7 +46,7 @@ export default function Home() {
       if (state.status === "error" || !state.result) throw new Error(state.error ?? "Reading failed");
       // Finished: open the result and clear the form, so coming back here
       // shows a fresh upload instead of a stale "Done…" box.
-      router.push(`/letters/${state.result.letter_id}`);
+      router.push(`/letter?id=${state.result.letter_id}`);
       setFiles([]);
       setJob(null);
       setBusy(null);
@@ -76,9 +77,9 @@ export default function Home() {
               <a href="#scan" className="btn-primary">
                 Scan a letter
               </a>
-              <a href="/deadline" className="btn-link">
+              <Link href="/deadline" className="btn-link">
                 Try the deadline calculator ›
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -160,7 +161,7 @@ export default function Home() {
           <p className="text-[11px] leading-relaxed text-ink/55">
             {meta?.ai_provider === "ollama"
               ? `Read by ${meta.ai_model_name}, running locally on this computer. Nothing is sent to the internet. Reading takes about a minute per page.`
-              : "Read by Claude under a data-processing agreement; only the extracted data is stored on this server."}{" "}
+              : `Read by ${meta?.ai_model_name ?? "Claude"}: your letter is sent to Anthropic to be read, and only the extracted details are saved. Your cases are visible only in this browser.`}{" "}
             You can delete a case at any time.
           </p>
         </div>

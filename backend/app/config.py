@@ -28,5 +28,13 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     max_upload_mb: int = 20
 
+    # Public deployment safeguards. 0 = no limit (fine on your own computer).
+    # Each read costs money with the Claude API, so cap it on a public server.
+    max_reads_per_day: int = 0
+    max_reads_per_ip_per_day: int = 0
+    # Cases saved before cases had owners are handed to the first browser that
+    # lists cases. Handy locally; switch off on a public server.
+    adopt_unowned_cases: bool = True
+
 
 settings = Settings()

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CopyButton from "@/components/CopyButton";
 import { CornerTicks } from "@/components/Frame";
 import DeadlineList from "@/components/DeadlineList";
@@ -73,7 +73,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
         {card.linked_to_existing_case && (
           <p className="border border-line bg-paper px-3 py-2 text-sm text-ink/75">
             This letter has the same reference number as an earlier one, so we added it to that{" "}
-            <Link href={`/cases/${card.case_id}`} className="underline">
+            <Link href={`/case?id=${card.case_id}`} className="underline">
               case
             </Link>
             .
@@ -143,9 +143,9 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
         <DeadlineList deadlines={card.deadlines} />
         <div className="flex flex-wrap items-end gap-3 border-t border-line pt-3">
           {card.deadlines.length > 0 && (
-            <a className="btn-primary" href={api.icsUrl(card.letter_id)}>
-              Add to calendar (.ics) ↗
-            </a>
+            <button className="btn-primary" onClick={() => api.downloadIcs(card.letter_id).catch((e) => alert(e.message))}>
+              Add to calendar (.ics) ↓
+            </button>
           )}
           <details className="text-sm">
             <summary className="cursor-pointer text-ink/65">Wrong date? Correct it</summary>
@@ -205,8 +205,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
               </dl>
               {card.payment.iban_valid && (
                 <div className="text-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={api.girocodeUrl(card.letter_id)} alt="GiroCode for your banking app" className="h-40 w-40" />
+                  <GiroCode letterId={card.letter_id} />
                   <p className="text-xs text-ink/55">Scan with your banking app</p>
                 </div>
               )}
@@ -284,7 +283,7 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-        <Link href={`/cases/${card.case_id}`} className="btn-secondary">
+        <Link href={`/case?id=${card.case_id}`} className="btn-secondary">
           Open case →
         </Link>
         <span className="text-ink/55">AI confidence: {Math.round(card.confidence * 100)}%</span>
@@ -294,4 +293,19 @@ export default function LetterResult({ initial, meta }: { initial: LetterCard; m
       {template && <ReplyDrafter template={template} card={card} onClose={() => setTemplateId(null)} />}
     </div>
   );
+}
+
+/** The GiroCode is fetched with this browser's id, then shown from memory. */
+function GiroCode({ letterId }: { letterId: number }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let url: string | null = null;
+    api.girocode(letterId).then((u) => setSrc((url = u))).catch(() => setSrc(null));
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [letterId]);
+  if (!src) return <div className="h-40 w-40 animate-pulse bg-ink/5" />;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="GiroCode for your banking app" className="h-40 w-40" />;
 }

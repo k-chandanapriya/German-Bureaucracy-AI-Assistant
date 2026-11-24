@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import JSON, Column
+from sqlalchemy import JSON, Column, inspect, text
 from sqlmodel import Field, Session, SQLModel, create_engine
 
 from app.config import settings
@@ -19,6 +19,8 @@ def _now() -> datetime:
 
 class Case(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    # Random id of the browser that created the case; only it can see the case.
+    owner: str | None = Field(default=None, index=True)
     title: str
     sender_name: str
     sender_category: str
@@ -60,6 +62,10 @@ engine = create_engine(
 
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
+    # Databases created before cases had owners: add the column in place.
+    if "owner" not in {c["name"] for c in inspect(engine).get_columns("case")}:
+        with engine.begin() as conn:
+            conn.execute(text('ALTER TABLE "case" ADD COLUMN owner VARCHAR'))
 
 
 def get_session():

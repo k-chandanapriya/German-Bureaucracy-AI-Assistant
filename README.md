@@ -78,6 +78,22 @@ cd backend && .venv/bin/python -m pytest
 cd frontend && npm run lint && npm run build
 ```
 
+## Live version
+
+- **Website:** https://k-chandanapriya.github.io/German-Bureaucracy-AI-Assistant/ (GitHub Pages, static export of `frontend/`)
+- **API:** a free [Render](https://render.com) web service, defined in [`render.yaml`](render.yaml). The live version reads letters with Claude, because a local Ollama model is too large for free hosting.
+
+How the pieces fit:
+
+1. **Backend on Render:** New → Blueprint → pick this repo. Render reads `render.yaml` and asks for `ANTHROPIC_API_KEY`. Copy the service URL, e.g. `https://briefly-api.onrender.com`.
+2. **Website on GitHub Pages:** set the repository variable `API_URL` to that URL (Settings → Secrets and variables → Actions → Variables). Every push to `main` that touches `frontend/` rebuilds the site via [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
+
+Things to know about the free setup:
+
+- The API sleeps after 15 minutes without visitors; the first request then takes about a minute.
+- The database is SQLite on Render's temporary disk, so saved cases disappear when the service restarts or redeploys. Set `DATABASE_URL` to a Postgres database to keep them.
+- Each browser only sees its own cases (a random id kept in the browser), and reading is capped per day (`MAX_READS_PER_DAY`, `MAX_READS_PER_IP_PER_DAY`) so the demo can't run up the Claude bill.
+
 ## Project layout
 
 ```

@@ -44,7 +44,7 @@ export default function CasesPage() {
           <section key={title as string} className="space-y-2">
             <h2 className="mono-label">{title as string}</h2>
             {(list as CaseSummary[]).map((c) => (
-              <Link key={c.id} href={`/cases/${c.id}`} className="card flex items-center gap-4 transition hover:border-ink/50">
+              <Link key={c.id} href={`/case?id=${c.id}`} className="card flex items-center gap-4 transition hover:border-ink/50">
                 <span className="grid h-11 w-11 shrink-0 place-items-center border border-accent/60 font-mono text-[11px] tracking-wider text-accent">
                   {SENDER_TAG[c.sender_category] ?? "—"}
                 </span>

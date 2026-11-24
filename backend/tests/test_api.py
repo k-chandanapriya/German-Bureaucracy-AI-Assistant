@@ -8,8 +8,11 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app.main import app  # noqa: E402
 
 
-def client() -> TestClient:
-    return TestClient(app)
+OWNER = "test-browser-0000000001"
+
+
+def client(owner: str = OWNER) -> TestClient:
+    return TestClient(app, headers={"X-Briefly-Owner": owner})
 
 
 def test_health_and_meta():
@@ -151,3 +154,29 @@ def test_reading_job_reports_progress_and_result(monkeypatch):
             time.sleep(0.05)
         assert state == {**state, "status": "error", "error": "Can't reach Ollama"}
         assert c.get("/api/jobs/unknown").status_code == 404
+
+
+def test_cases_are_private_to_their_browser():
+    with client() as c:
+        card = c.post("/api/letters/sample/abh_termin").json()
+    with client("other-browser-000000002") as other:
+        assert other.get(f"/api/letters/{card['letter_id']}").status_code == 404
+        assert other.get(f"/api/cases/{card['case_id']}").status_code == 404
+        assert other.delete(f"/api/cases/{card['case_id']}").status_code == 404
+        assert all(x["id"] != card["case_id"] for x in other.get("/api/cases").json())
+    with TestClient(app) as anonymous:
+        assert anonymous.get("/api/cases").status_code == 401
+
+
+def test_daily_read_limit(monkeypatch):
+    from app import limits
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "max_reads_per_ip_per_day", 1)
+    monkeypatch.setattr(limits, "_per_ip", limits.Counter())
+    monkeypatch.setattr("app.main.extract_letter", lambda files, progress=None: (_ for _ in ()).throw(RuntimeError("not called")))
+    monkeypatch.setattr("app.main.jobs.submit", lambda *a, **k: type("J", (), {"to_dict": lambda self: {"id": "x"}})())
+    with client() as c:
+        upload = {"files": ("a.png", b"x", "image/png")}
+        assert c.post("/api/letters/analyze/jobs", files=upload).status_code == 202
+        assert c.post("/api/letters/analyze/jobs", files=upload).status_code == 429
